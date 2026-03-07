@@ -1,2 +1,2 @@
-streamlit
-PyPDF2
+streamlit==1.33.0
+pypdf==4.2.0
