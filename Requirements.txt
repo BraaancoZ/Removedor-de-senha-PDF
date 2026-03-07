@@ -1,2 +1,1 @@
-streamlit
-PyPDF2
+from pypdf import PdfReader, PdfWriter
