@@ -1,5 +1,5 @@
 import streamlit as st
-from PyPDF2 import PdfReader, PdfWriter
+from pypdf import PdfReader, PdfWriter
 import tempfile
 
 st.set_page_config(
@@ -42,4 +42,5 @@ if st.button("Remover senha"):
                 )
 
         else:
+
             st.error("Esse PDF não possui senha.")
