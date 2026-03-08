@@ -120,6 +120,10 @@ HOME_ORDER = [
 if "tool" not in st.session_state:
     st.session_state.tool = None
 
+if "home_uploaded_files_data" not in st.session_state:
+    st.session_state.home_uploaded_files_data = []
+
+
 # =====================================================
 # HELPERS
 # =====================================================
@@ -167,6 +171,26 @@ def set_tool(tool_key: str):
     reset_editor_states()
     st.session_state.tool = tool_key
     st.rerun()
+
+
+def save_home_uploads(uploaded_files):
+    data = []
+    if uploaded_files:
+        for f in uploaded_files:
+            data.append(
+                {
+                    "name": f.name,
+                    "bytes": f.getvalue(),
+                    "size": getattr(f, "size", len(f.getvalue())),
+                    "type": Path(f.name).suffix.lower().replace(".", ""),
+                }
+            )
+    st.session_state.home_uploaded_files_data = data
+
+
+def get_home_files_by_ext(extensions: List[str]) -> List[dict]:
+    files = st.session_state.get("home_uploaded_files_data", [])
+    return [f for f in files if f["type"] in extensions]
 
 
 def unlock_pdf(pdf_bytes: bytes, password: str) -> bytes:
@@ -348,15 +372,15 @@ def get_pdf_thumbnail(pdf_bytes: bytes, page_number: int, zoom: float = 0.58):
 def build_merge_editor(files):
     rows = []
     for f in files:
-        reader = PdfReader(io.BytesIO(f.getvalue()))
+        reader = PdfReader(io.BytesIO(f["bytes"]))
         for p in range(len(reader.pages)):
             rows.append({
-                "id": f"{f.name}__{p+1}",
-                "arquivo": f.name,
+                "id": f'{f["name"]}__{p+1}',
+                "arquivo": f["name"],
                 "pagina_pdf": p + 1,
                 "incluir": True,
                 "ordem": len(rows) + 1,
-                "rotulo": f"{f.name} - página {p+1}",
+                "rotulo": f'{f["name"]} - página {p+1}',
             })
     return pd.DataFrame(rows)
 
@@ -379,15 +403,15 @@ def build_single_editor(file_name: str, file_bytes: bytes):
 def build_reorganize_editor(files):
     rows = []
     for f in files:
-        reader = PdfReader(io.BytesIO(f.getvalue()))
+        reader = PdfReader(io.BytesIO(f["bytes"]))
         for p in range(len(reader.pages)):
             rows.append({
-                "id": f"{f.name}__{p+1}",
-                "arquivo": f.name,
+                "id": f'{f["name"]}__{p+1}',
+                "arquivo": f["name"],
                 "pagina_pdf": p + 1,
                 "incluir": True,
                 "ordem": len(rows) + 1,
-                "rotulo": f"{f.name} - página {p+1}",
+                "rotulo": f'{f["name"]} - página {p+1}',
             })
     return pd.DataFrame(rows)
 
@@ -409,11 +433,20 @@ def file_summary_box(files, accepted_label: str):
     if not isinstance(files, list):
         files = [files]
 
-    total_size = sum(getattr(f, "size", 0) for f in files)
+    total_size = 0
+    normalized = []
+    for f in files:
+        if isinstance(f, dict):
+            total_size += f.get("size", 0)
+            normalized.append(f)
+        else:
+            total_size += getattr(f, "size", 0)
+            normalized.append(f)
+
     st.markdown(
         f"""
         <div class="upload-summary">
-            <div><strong>{len(files)}</strong> arquivo(s)</div>
+            <div><strong>{len(normalized)}</strong> arquivo(s)</div>
             <div>{accepted_label}</div>
             <div>Total: <strong>{human_size(total_size)}</strong></div>
         </div>
@@ -843,8 +876,9 @@ header, [data-testid="stHeader"] {
 }
 
 .home-card-btn .stButton > button {
-    min-height: 210px !important;
-    max-height: 210px !important;
+    height: 220px !important;
+    min-height: 220px !important;
+    max-height: 220px !important;
     border-radius: 20px !important;
     background: #fff !important;
     color: var(--text) !important;
@@ -857,6 +891,7 @@ header, [data-testid="stHeader"] {
     display: flex !important;
     align-items: flex-start !important;
     justify-content: flex-start !important;
+    overflow: hidden !important;
 }
 
 .home-card-btn .stButton > button:hover {
@@ -902,6 +937,7 @@ header, [data-testid="stHeader"] {
     }
 
     .home-card-btn .stButton > button {
+        height: 220px !important;
         min-height: 220px !important;
         max-height: 220px !important;
     }
@@ -921,7 +957,7 @@ hero_html = f"""
         <div class="brand-logo">📄</div>
         <div>
             <div class="brand-title">PDF Fácil</div>
-            <div class="brand-subtitle">Ferramentas online para PDF com visual moderno e prático</div>
+            <div class="brand-subtitle">Ferramentas online para PDF</div>
         </div>
     </div>
 </div>
@@ -970,19 +1006,21 @@ if st.session_state.tool is None:
         """
         <div class="big-home-upload">
             <div class="big-home-upload-title">Envie seus PDFs e comece agora</div>
-            <div class="big-home-upload-subtitle">Depois você escolhe a ferramenta que deseja usar</div>
+            <div class="big-home-upload-subtitle">Os arquivos enviados aqui serão reaproveitados automaticamente nas ferramentas compatíveis</div>
         </div>
         """,
         unsafe_allow_html=True,
     )
 
-    st.file_uploader(
+    home_files = st.file_uploader(
         "Envie PDFs",
         type=["pdf"],
         accept_multiple_files=True,
         key="home_big_upload",
         label_visibility="collapsed",
     )
+    save_home_uploads(home_files)
+    file_summary_box(get_home_files_by_ext(["pdf"]), "PDF")
 
     st.markdown("<div style='height:10px;'></div>", unsafe_allow_html=True)
 
@@ -1001,6 +1039,9 @@ if st.session_state.tool is None:
 # =====================================================
 
 if st.session_state.tool is not None:
+    home_pdf_files = get_home_files_by_ext(["pdf"])
+    home_docx_files = get_home_files_by_ext(["docx"])
+
     st.markdown("<div style='height:8px;'></div>", unsafe_allow_html=True)
 
     back_cols = st.columns([1, 1.6, 1])
@@ -1028,7 +1069,7 @@ if st.session_state.tool is not None:
     if st.session_state.tool == "unlock":
         st.markdown('<div class="section-box upload-section">', unsafe_allow_html=True)
         st.markdown('<div class="upload-zone-title">Envie os PDFs protegidos</div>', unsafe_allow_html=True)
-        arquivos = st.file_uploader(
+        arquivos_uploader = st.file_uploader(
             "Envie os PDFs protegidos",
             type=["pdf"],
             accept_multiple_files=True,
@@ -1036,7 +1077,12 @@ if st.session_state.tool is not None:
             label_visibility="collapsed",
         )
         st.markdown("</div>", unsafe_allow_html=True)
+
+        arquivos = arquivos_uploader if arquivos_uploader else home_pdf_files
+        if not arquivos_uploader and home_pdf_files:
+            st.info("Usando os PDFs enviados na home.")
         file_summary_box(arquivos, "PDF")
+
         senha = st.text_input("Digite a senha do PDF", type="password")
 
         action_cols = st.columns([1, 1, 1])
@@ -1052,19 +1098,24 @@ if st.session_state.tool is not None:
                 try:
                     with st.spinner("Desbloqueando arquivos..."):
                         if len(arquivos) == 1:
-                            unlocked = unlock_pdf(arquivos[0].getvalue(), senha)
+                            f = arquivos[0]
+                            file_bytes = f["bytes"] if isinstance(f, dict) else f.getvalue()
+                            file_name = f["name"] if isinstance(f, dict) else f.name
+                            unlocked = unlock_pdf(file_bytes, senha)
                             st.download_button(
                                 "Baixar PDF desbloqueado",
                                 unlocked,
-                                arquivos[0].name,
+                                file_name,
                                 key="download_unlock_single",
                             )
                         else:
                             zip_buffer = io.BytesIO()
                             with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
                                 for arquivo in arquivos:
-                                    unlocked = unlock_pdf(arquivo.getvalue(), senha)
-                                    zip_file.writestr(arquivo.name, unlocked)
+                                    file_bytes = arquivo["bytes"] if isinstance(arquivo, dict) else arquivo.getvalue()
+                                    file_name = arquivo["name"] if isinstance(arquivo, dict) else arquivo.name
+                                    unlocked = unlock_pdf(file_bytes, senha)
+                                    zip_file.writestr(file_name, unlocked)
 
                             st.download_button(
                                 "Baixar todos em ZIP",
@@ -1078,7 +1129,7 @@ if st.session_state.tool is not None:
     elif st.session_state.tool == "merge":
         st.markdown('<div class="section-box upload-section">', unsafe_allow_html=True)
         st.markdown('<div class="upload-zone-title">Selecione os PDFs</div>', unsafe_allow_html=True)
-        arquivos = st.file_uploader(
+        arquivos_uploader = st.file_uploader(
             "Selecione os PDFs",
             type=["pdf"],
             accept_multiple_files=True,
@@ -1086,15 +1137,26 @@ if st.session_state.tool is not None:
             label_visibility="collapsed",
         )
         st.markdown("</div>", unsafe_allow_html=True)
+
+        arquivos = arquivos_uploader if arquivos_uploader else home_pdf_files
+        if not arquivos_uploader and home_pdf_files:
+            st.info("Usando os PDFs enviados na home.")
         file_summary_box(arquivos, "PDF")
 
         file_bytes_map = {}
         if arquivos:
-            file_bytes_map = {a.name: a.getvalue() for a in arquivos}
-            current_source = [a.name for a in arquivos]
+            normalized_files = []
+            for a in arquivos:
+                if isinstance(a, dict):
+                    normalized_files.append(a)
+                else:
+                    normalized_files.append({"name": a.name, "bytes": a.getvalue(), "size": getattr(a, "size", len(a.getvalue()))})
+
+            file_bytes_map = {a["name"]: a["bytes"] for a in normalized_files}
+            current_source = [a["name"] for a in normalized_files]
 
             if "merge_editor_df" not in st.session_state or st.session_state.get("merge_source") != current_source:
-                st.session_state.merge_editor_df = build_merge_editor(arquivos)
+                st.session_state.merge_editor_df = build_merge_editor(normalized_files)
                 st.session_state.merge_source = current_source
 
             st.session_state.merge_editor_df = render_sort_area(
@@ -1149,7 +1211,7 @@ if st.session_state.tool is not None:
     elif st.session_state.tool == "split":
         st.markdown('<div class="section-box upload-section">', unsafe_allow_html=True)
         st.markdown('<div class="upload-zone-title">Selecione o PDF</div>', unsafe_allow_html=True)
-        arquivo = st.file_uploader(
+        arquivo_uploader = st.file_uploader(
             "Selecione o PDF",
             type=["pdf"],
             accept_multiple_files=False,
@@ -1157,17 +1219,35 @@ if st.session_state.tool is not None:
             label_visibility="collapsed",
         )
         st.markdown("</div>", unsafe_allow_html=True)
+
+        arquivo = None
+        if arquivo_uploader:
+            arquivo = arquivo_uploader
+        elif home_pdf_files:
+            if len(home_pdf_files) == 1:
+                arquivo = home_pdf_files[0]
+                st.info("Usando o PDF enviado na home.")
+            else:
+                selected_name = st.selectbox(
+                    "Escolha qual PDF da home deseja dividir",
+                    options=[f["name"] for f in home_pdf_files],
+                    key="split_home_selector",
+                )
+                arquivo = next((f for f in home_pdf_files if f["name"] == selected_name), None)
+                st.info("Usando um PDF enviado na home.")
+
         file_summary_box(arquivo, "PDF")
 
         if arquivo:
-            file_bytes = arquivo.getvalue()
-            file_map = {arquivo.name: file_bytes}
+            file_name = arquivo["name"] if isinstance(arquivo, dict) else arquivo.name
+            file_bytes = arquivo["bytes"] if isinstance(arquivo, dict) else arquivo.getvalue()
+            file_map = {file_name: file_bytes}
             reader = PdfReader(io.BytesIO(file_bytes))
             paginas = len(reader.pages)
 
-            if "split_editor_df" not in st.session_state or st.session_state.get("split_source") != arquivo.name:
-                st.session_state.split_editor_df = build_single_editor(arquivo.name, file_bytes)
-                st.session_state.split_source = arquivo.name
+            if "split_editor_df" not in st.session_state or st.session_state.get("split_source") != file_name:
+                st.session_state.split_editor_df = build_single_editor(file_name, file_bytes)
+                st.session_state.split_source = file_name
 
             st.session_state.split_editor_df = render_sort_area(
                 st.session_state.split_editor_df,
@@ -1221,14 +1301,14 @@ if st.session_state.tool is not None:
                         st.download_button(
                             "Baixar parte 1",
                             parte1,
-                            with_suffix(arquivo.name, "_parte1", ".pdf"),
+                            with_suffix(file_name, "_parte1", ".pdf"),
                             key="download_split_1",
                         )
                     with d2:
                         st.download_button(
                             "Baixar parte 2",
                             parte2,
-                            with_suffix(arquivo.name, "_parte2", ".pdf"),
+                            with_suffix(file_name, "_parte2", ".pdf"),
                             key="download_split_2",
                         )
 
@@ -1241,7 +1321,7 @@ if st.session_state.tool is not None:
                         st.download_button(
                             "Baixar PDF reorganizado",
                             rebuilt,
-                            with_suffix(arquivo.name, "_reorganizado", ".pdf"),
+                            with_suffix(file_name, "_reorganizado", ".pdf"),
                             key="download_split_rebuild",
                         )
             else:
@@ -1251,7 +1331,7 @@ if st.session_state.tool is not None:
     elif st.session_state.tool == "reorganize":
         st.markdown('<div class="section-box upload-section">', unsafe_allow_html=True)
         st.markdown('<div class="upload-zone-title">Selecione um ou mais PDFs</div>', unsafe_allow_html=True)
-        arquivos = st.file_uploader(
+        arquivos_uploader = st.file_uploader(
             "Selecione um ou mais PDFs",
             type=["pdf"],
             accept_multiple_files=True,
@@ -1259,14 +1339,25 @@ if st.session_state.tool is not None:
             label_visibility="collapsed",
         )
         st.markdown("</div>", unsafe_allow_html=True)
+
+        arquivos = arquivos_uploader if arquivos_uploader else home_pdf_files
+        if not arquivos_uploader and home_pdf_files:
+            st.info("Usando os PDFs enviados na home.")
         file_summary_box(arquivos, "PDF")
 
         if arquivos:
-            all_names = [a.name for a in arquivos]
-            file_bytes_map = {a.name: a.getvalue() for a in arquivos}
+            normalized_files = []
+            for a in arquivos:
+                if isinstance(a, dict):
+                    normalized_files.append(a)
+                else:
+                    normalized_files.append({"name": a.name, "bytes": a.getvalue(), "size": getattr(a, "size", len(a.getvalue()))})
+
+            all_names = [a["name"] for a in normalized_files]
+            file_bytes_map = {a["name"]: a["bytes"] for a in normalized_files}
 
             if "reorg_editor_df" not in st.session_state or st.session_state.get("reorg_source") != all_names:
-                st.session_state.reorg_editor_df = build_reorganize_editor(arquivos)
+                st.session_state.reorg_editor_df = build_reorganize_editor(normalized_files)
                 st.session_state.reorg_source = all_names
 
             st.session_state.reorg_editor_df = render_sort_area(
@@ -1320,7 +1411,7 @@ if st.session_state.tool is not None:
     elif st.session_state.tool == "compress":
         st.markdown('<div class="section-box upload-section">', unsafe_allow_html=True)
         st.markdown('<div class="upload-zone-title">Selecione os PDFs</div>', unsafe_allow_html=True)
-        arquivos = st.file_uploader(
+        arquivos_uploader = st.file_uploader(
             "Selecione os PDFs",
             type=["pdf"],
             accept_multiple_files=True,
@@ -1328,6 +1419,10 @@ if st.session_state.tool is not None:
             label_visibility="collapsed",
         )
         st.markdown("</div>", unsafe_allow_html=True)
+
+        arquivos = arquivos_uploader if arquivos_uploader else home_pdf_files
+        if not arquivos_uploader and home_pdf_files:
+            st.info("Usando os PDFs enviados na home.")
         file_summary_box(arquivos, "PDF")
 
         action_cols = st.columns([1, 1, 1])
@@ -1339,20 +1434,25 @@ if st.session_state.tool is not None:
                 st.warning("Envie pelo menos um PDF.")
             else:
                 if len(arquivos) == 1:
-                    compressed = compress_pdf_bytes(arquivos[0].getvalue())
+                    f = arquivos[0]
+                    file_bytes = f["bytes"] if isinstance(f, dict) else f.getvalue()
+                    file_name = f["name"] if isinstance(f, dict) else f.name
+                    compressed = compress_pdf_bytes(file_bytes)
                     st.download_button(
                         "Baixar PDF comprimido",
                         compressed,
-                        with_suffix(arquivos[0].name, "_comprimido", ".pdf"),
+                        with_suffix(file_name, "_comprimido", ".pdf"),
                         key="download_compress_single",
                     )
                 else:
                     zip_buffer = io.BytesIO()
                     with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
                         for arquivo in arquivos:
-                            compressed = compress_pdf_bytes(arquivo.getvalue())
+                            file_bytes = arquivo["bytes"] if isinstance(arquivo, dict) else arquivo.getvalue()
+                            file_name = arquivo["name"] if isinstance(arquivo, dict) else arquivo.name
+                            compressed = compress_pdf_bytes(file_bytes)
                             zip_file.writestr(
-                                with_suffix(arquivo.name, "_comprimido", ".pdf"),
+                                with_suffix(file_name, "_comprimido", ".pdf"),
                                 compressed
                             )
 
@@ -1399,7 +1499,7 @@ if st.session_state.tool is not None:
     elif st.session_state.tool == "pdfjpg":
         st.markdown('<div class="section-box upload-section">', unsafe_allow_html=True)
         st.markdown('<div class="upload-zone-title">Selecione um ou mais PDFs</div>', unsafe_allow_html=True)
-        arquivos = st.file_uploader(
+        arquivos_uploader = st.file_uploader(
             "Selecione um ou mais PDFs",
             type=["pdf"],
             accept_multiple_files=True,
@@ -1407,7 +1507,12 @@ if st.session_state.tool is not None:
             label_visibility="collapsed",
         )
         st.markdown("</div>", unsafe_allow_html=True)
+
+        arquivos = arquivos_uploader if arquivos_uploader else home_pdf_files
+        if not arquivos_uploader and home_pdf_files:
+            st.info("Usando os PDFs enviados na home.")
         file_summary_box(arquivos, "PDF")
+
         quality = st.slider("Qualidade do JPG", min_value=60, max_value=100, value=90, step=5)
 
         action_cols = st.columns([1, 1, 1])
@@ -1421,8 +1526,10 @@ if st.session_state.tool is not None:
                 zip_buffer = io.BytesIO()
                 with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
                     for arquivo in arquivos:
-                        sub_zip = pdf_to_jpg_zip(arquivo.getvalue(), quality=quality)
-                        zip_file.writestr(with_suffix(arquivo.name, "_jpg", ".zip"), sub_zip)
+                        file_bytes = arquivo["bytes"] if isinstance(arquivo, dict) else arquivo.getvalue()
+                        file_name = arquivo["name"] if isinstance(arquivo, dict) else arquivo.name
+                        sub_zip = pdf_to_jpg_zip(file_bytes, quality=quality)
+                        zip_file.writestr(with_suffix(file_name, "_jpg", ".zip"), sub_zip)
 
                 st.download_button(
                     "Baixar ZIP",
@@ -1434,7 +1541,7 @@ if st.session_state.tool is not None:
     elif st.session_state.tool == "pdfword":
         st.markdown('<div class="section-box upload-section">', unsafe_allow_html=True)
         st.markdown('<div class="upload-zone-title">Selecione um ou mais PDFs</div>', unsafe_allow_html=True)
-        arquivos = st.file_uploader(
+        arquivos_uploader = st.file_uploader(
             "Selecione um ou mais PDFs",
             type=["pdf"],
             accept_multiple_files=True,
@@ -1442,6 +1549,10 @@ if st.session_state.tool is not None:
             label_visibility="collapsed",
         )
         st.markdown("</div>", unsafe_allow_html=True)
+
+        arquivos = arquivos_uploader if arquivos_uploader else home_pdf_files
+        if not arquivos_uploader and home_pdf_files:
+            st.info("Usando os PDFs enviados na home.")
         file_summary_box(arquivos, "PDF")
 
         action_cols = st.columns([1, 1, 1])
@@ -1453,19 +1564,24 @@ if st.session_state.tool is not None:
                 st.warning("Envie pelo menos um PDF.")
             else:
                 if len(arquivos) == 1:
-                    docx_bytes = pdf_text_to_docx(arquivos[0].getvalue())
+                    f = arquivos[0]
+                    file_bytes = f["bytes"] if isinstance(f, dict) else f.getvalue()
+                    file_name = f["name"] if isinstance(f, dict) else f.name
+                    docx_bytes = pdf_text_to_docx(file_bytes)
                     st.download_button(
                         "Baixar Word (.docx)",
                         docx_bytes,
-                        with_ext(arquivos[0].name, ".docx"),
+                        with_ext(file_name, ".docx"),
                         key="download_pdfword_single",
                     )
                 else:
                     zip_buffer = io.BytesIO()
                     with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
                         for arquivo in arquivos:
-                            docx_bytes = pdf_text_to_docx(arquivo.getvalue())
-                            zip_file.writestr(with_ext(arquivo.name, ".docx"), docx_bytes)
+                            file_bytes = arquivo["bytes"] if isinstance(arquivo, dict) else arquivo.getvalue()
+                            file_name = arquivo["name"] if isinstance(arquivo, dict) else arquivo.name
+                            docx_bytes = pdf_text_to_docx(file_bytes)
+                            zip_file.writestr(with_ext(file_name, ".docx"), docx_bytes)
 
                     st.download_button(
                         "Baixar ZIP",
@@ -1477,7 +1593,7 @@ if st.session_state.tool is not None:
     elif st.session_state.tool == "wordpdf":
         st.markdown('<div class="section-box upload-section">', unsafe_allow_html=True)
         st.markdown('<div class="upload-zone-title">Selecione um ou mais arquivos Word (.docx)</div>', unsafe_allow_html=True)
-        arquivos = st.file_uploader(
+        arquivos_uploader = st.file_uploader(
             "Selecione um ou mais arquivos Word (.docx)",
             type=["docx"],
             accept_multiple_files=True,
@@ -1485,6 +1601,10 @@ if st.session_state.tool is not None:
             label_visibility="collapsed",
         )
         st.markdown("</div>", unsafe_allow_html=True)
+
+        arquivos = arquivos_uploader if arquivos_uploader else home_docx_files
+        if not arquivos_uploader and home_docx_files:
+            st.info("Usando os DOCX enviados na home.")
         file_summary_box(arquivos, "DOCX")
 
         action_cols = st.columns([1, 1, 1])
@@ -1496,19 +1616,24 @@ if st.session_state.tool is not None:
                 st.warning("Envie pelo menos um arquivo .docx.")
             else:
                 if len(arquivos) == 1:
-                    pdf_bytes = docx_to_simple_pdf(arquivos[0].getvalue())
+                    f = arquivos[0]
+                    file_bytes = f["bytes"] if isinstance(f, dict) else f.getvalue()
+                    file_name = f["name"] if isinstance(f, dict) else f.name
+                    pdf_bytes = docx_to_simple_pdf(file_bytes)
                     st.download_button(
                         "Baixar PDF",
                         pdf_bytes,
-                        with_ext(arquivos[0].name, ".pdf"),
+                        with_ext(file_name, ".pdf"),
                         key="download_wordpdf_single",
                     )
                 else:
                     zip_buffer = io.BytesIO()
                     with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
                         for arquivo in arquivos:
-                            pdf_bytes = docx_to_simple_pdf(arquivo.getvalue())
-                            zip_file.writestr(with_ext(arquivo.name, ".pdf"), pdf_bytes)
+                            file_bytes = arquivo["bytes"] if isinstance(arquivo, dict) else arquivo.getvalue()
+                            file_name = arquivo["name"] if isinstance(arquivo, dict) else arquivo.name
+                            pdf_bytes = docx_to_simple_pdf(file_bytes)
+                            zip_file.writestr(with_ext(file_name, ".pdf"), pdf_bytes)
 
                     st.download_button(
                         "Baixar ZIP",
