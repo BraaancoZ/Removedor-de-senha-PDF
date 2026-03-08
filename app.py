@@ -13,7 +13,6 @@ from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 from streamlit_sortables import sort_items
 
-
 st.set_page_config(
     page_title="PDF Fácil",
     page_icon="📄",
@@ -67,20 +66,53 @@ DESCRIPTIONS = {
 }
 
 BANNERS = {
-    "unlock": ("Remover senha de PDF", "Envie um ou mais PDFs protegidos, informe a senha e baixe o resultado."),
-    "merge": ("Juntar PDFs", "Envie vários PDFs, arraste as páginas para organizar e gere um único arquivo final."),
-    "split": ("Dividir PDF", "Divida um PDF em partes ou reorganize as páginas antes de baixar."),
-    "reorganize": ("Reorganizar PDF", "Arraste as páginas, exclua o que não quiser e gere um novo PDF."),
-    "compress": ("Comprimir PDF", "Reduza o tamanho do PDF para facilitar envio e armazenamento."),
-    "imgpdf": ("JPG para PDF", "Envie imagens e gere um PDF em poucos segundos."),
-    "pdfjpg": ("PDF para JPG", "Converta páginas de PDF em imagens JPG em arquivo ZIP."),
-    "pdfword": ("PDF para Word", "Extraia o texto de um PDF e gere um documento Word."),
-    "wordpdf": ("Word para PDF", "Converta DOCX em PDF simples, com foco em texto."),
+    "unlock": (
+        "Remover senha de PDF",
+        "Envie um ou mais PDFs protegidos, informe a senha e baixe o resultado.",
+    ),
+    "merge": (
+        "Juntar PDFs",
+        "Envie vários PDFs, organize as páginas e gere um único arquivo final.",
+    ),
+    "split": (
+        "Dividir PDF",
+        "Divida um PDF em partes ou reorganize as páginas antes de baixar.",
+    ),
+    "reorganize": (
+        "Reorganizar PDF",
+        "Arraste as páginas, exclua o que não quiser e gere um novo PDF.",
+    ),
+    "compress": (
+        "Comprimir PDF",
+        "Reduza o tamanho do PDF para facilitar envio e armazenamento.",
+    ),
+    "imgpdf": (
+        "JPG para PDF",
+        "Envie imagens e gere um PDF em poucos segundos.",
+    ),
+    "pdfjpg": (
+        "PDF para JPG",
+        "Converta páginas de PDF em imagens JPG em arquivo ZIP.",
+    ),
+    "pdfword": (
+        "PDF para Word",
+        "Extraia o texto de um PDF e gere um documento Word.",
+    ),
+    "wordpdf": (
+        "Word para PDF",
+        "Converta DOCX em PDF simples, com foco em texto.",
+    ),
 }
+
+FEATURE_CHIPS = [
+    "Sem instalação",
+    "Funciona no celular",
+    "Rápido",
+    "Gratuito",
+]
 
 if "tool" not in st.session_state:
     st.session_state.tool = None
-
 
 # =====================================================
 # HELPERS
@@ -452,6 +484,17 @@ def file_summary_box(files, accepted_label: str):
     )
 
 
+def render_sort_area(df: pd.DataFrame, key_prefix: str, title: str):
+    st.markdown('<div class="section-box">', unsafe_allow_html=True)
+    st.markdown(f"### {title}")
+    st.caption("Arraste os cartões abaixo. O preview é atualizado conforme a ordem escolhida.")
+    labels = df.sort_values("ordem")["rotulo"].tolist()
+    sorted_labels = sort_items(labels, direction="horizontal", key=f"{key_prefix}_sort_center")
+    new_df = apply_drag_order(df, sorted_labels)
+    st.markdown("</div>", unsafe_allow_html=True)
+    return new_df
+
+
 # =====================================================
 # CSS
 # =====================================================
@@ -605,43 +648,6 @@ header, [data-testid="stHeader"] {
     box-shadow: var(--shadow);
 }
 
-.tool-card {
-    background: #fff;
-    border: 1px solid var(--line);
-    border-radius: 18px;
-    padding: 18px;
-    box-shadow: var(--shadow);
-    min-height: 190px;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-}
-
-.tool-icon {
-    width: 54px;
-    height: 54px;
-    border-radius: 16px;
-    background: #fff1f1;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 24px;
-    margin-bottom: 14px;
-}
-
-.tool-title {
-    font-size: 1.05rem;
-    font-weight: 900;
-    color: var(--text) !important;
-    margin-bottom: 8px;
-}
-
-.tool-desc {
-    color: var(--muted) !important;
-    line-height: 1.5;
-    font-size: 0.95rem;
-}
-
 .section-box {
     background: #fcfcfc;
     border: 1px solid var(--line);
@@ -785,6 +791,23 @@ header, [data-testid="stHeader"] {
     box-shadow: none !important;
 }
 
+.home-card-btn .stButton > button {
+    min-height: 190px !important;
+    white-space: pre-wrap !important;
+    text-align: left !important;
+    background: #fff !important;
+    color: var(--text) !important;
+    border: 1px solid var(--line) !important;
+    box-shadow: var(--shadow) !important;
+    padding: 18px !important;
+    line-height: 1.5 !important;
+}
+
+.home-card-btn .stButton > button:hover {
+    background: #fffafa !important;
+    border-color: #ffd4d4 !important;
+}
+
 .footer-note {
     text-align: center;
     color: var(--muted) !important;
@@ -804,10 +827,6 @@ header, [data-testid="stHeader"] {
     .tool-panel {
         padding: 16px 12px 20px 12px;
     }
-
-    .tool-card {
-        min-height: 170px;
-    }
 }
 </style>
 """, unsafe_allow_html=True)
@@ -816,12 +835,7 @@ header, [data-testid="stHeader"] {
 # HEADER / TOP MENU
 # =====================================================
 
-feature_chips_html = "".join([
-    '<div class="chip">Sem instalação</div>',
-    '<div class="chip">Funciona no celular</div>',
-    '<div class="chip">Rápido</div>',
-    '<div class="chip">Gratuito</div>',
-])
+feature_chips_html = "".join([f'<div class="chip">{item}</div>' for item in FEATURE_CHIPS])
 
 hero_html = f"""
 <div class="top-nav-wrap">
@@ -848,10 +862,9 @@ hero_html = f"""
 
 st.markdown(hero_html, unsafe_allow_html=True)
 
-# menu simples superior
 nav_cols = st.columns([1, 1, 1, 1, 1, 1.2], gap="small")
-
 main_order = ["unlock", "merge", "split", "reorganize", "compress"]
+
 for idx, key in enumerate(main_order):
     with nav_cols[idx]:
         st.markdown('<div class="nav-btn">', unsafe_allow_html=True)
@@ -884,20 +897,11 @@ if st.session_state.tool is None:
         cols = st.columns(3, gap="medium")
         for col, key in zip(cols, row):
             with col:
-                st.markdown(
-                    f"""
-                    <div class="tool-card">
-                        <div>
-                            <div class="tool-icon">{TOOL_ICONS[key]}</div>
-                            <div class="tool-title">{ALL_TOOLS[key]}</div>
-                            <div class="tool-desc">{DESCRIPTIONS[key]}</div>
-                        </div>
-                    </div>
-                    """,
-                    unsafe_allow_html=True,
-                )
-                if st.button("Usar agora", key=f"home_{key}"):
+                label = f"{TOOL_ICONS[key]}  {ALL_TOOLS[key]}\n\n{DESCRIPTIONS[key]}"
+                st.markdown('<div class="home-card-btn">', unsafe_allow_html=True)
+                if st.button(label, key=f"home_card_{key}"):
                     set_tool(key)
+                st.markdown("</div>", unsafe_allow_html=True)
 
 # =====================================================
 # TOOL PANEL
@@ -928,9 +932,6 @@ if st.session_state.tool is not None:
 
     st.markdown('<div class="tool-panel">', unsafe_allow_html=True)
 
-    # ================================================
-    # UNLOCK
-    # ================================================
     if st.session_state.tool == "unlock":
         st.markdown('<div class="section-box">', unsafe_allow_html=True)
         arquivos = st.file_uploader(
@@ -979,9 +980,6 @@ if st.session_state.tool is not None:
                 except Exception as e:
                     st.error(str(e))
 
-    # ================================================
-    # MERGE
-    # ================================================
     elif st.session_state.tool == "merge":
         st.markdown('<div class="section-box">', unsafe_allow_html=True)
         arquivos = st.file_uploader(
@@ -1002,12 +1000,11 @@ if st.session_state.tool is not None:
                 st.session_state.merge_editor_df = build_merge_editor(arquivos)
                 st.session_state.merge_source = current_source
 
-            st.markdown('<div class="section-box">', unsafe_allow_html=True)
-            st.markdown("### Arraste as páginas para organizar")
-            labels = st.session_state.merge_editor_df.sort_values("ordem")["rotulo"].tolist()
-            sorted_labels = sort_items(labels, direction="horizontal", key="merge_sort_center")
-            st.session_state.merge_editor_df = apply_drag_order(st.session_state.merge_editor_df, sorted_labels)
-            st.markdown("</div>", unsafe_allow_html=True)
+            st.session_state.merge_editor_df = render_sort_area(
+                st.session_state.merge_editor_df,
+                key_prefix="merge",
+                title="Organização das páginas",
+            )
 
             edited_df = st.data_editor(
                 st.session_state.merge_editor_df,
@@ -1052,9 +1049,6 @@ if st.session_state.tool is not None:
                         key="download_merge",
                     )
 
-    # ================================================
-    # SPLIT
-    # ================================================
     elif st.session_state.tool == "split":
         st.markdown('<div class="section-box">', unsafe_allow_html=True)
         arquivo = st.file_uploader(
@@ -1076,12 +1070,11 @@ if st.session_state.tool is not None:
                 st.session_state.split_editor_df = build_single_editor(arquivo.name, file_bytes)
                 st.session_state.split_source = arquivo.name
 
-            st.markdown('<div class="section-box">', unsafe_allow_html=True)
-            st.markdown("### Arraste as páginas para reorganizar")
-            labels = st.session_state.split_editor_df.sort_values("ordem")["rotulo"].tolist()
-            sorted_labels = sort_items(labels, direction="horizontal", key="split_sort_center")
-            st.session_state.split_editor_df = apply_drag_order(st.session_state.split_editor_df, sorted_labels)
-            st.markdown("</div>", unsafe_allow_html=True)
+            st.session_state.split_editor_df = render_sort_area(
+                st.session_state.split_editor_df,
+                key_prefix="split",
+                title="Organização das páginas",
+            )
 
             edited_df = st.data_editor(
                 st.session_state.split_editor_df,
@@ -1156,9 +1149,6 @@ if st.session_state.tool is not None:
                 st.info("Este PDF possui apenas uma página.")
             st.markdown("</div>", unsafe_allow_html=True)
 
-    # ================================================
-    # REORGANIZE
-    # ================================================
     elif st.session_state.tool == "reorganize":
         st.markdown('<div class="section-box">', unsafe_allow_html=True)
         base_pdf = st.file_uploader(
@@ -1191,12 +1181,11 @@ if st.session_state.tool is not None:
                 st.session_state.reorg_editor_df = build_reorganize_editor(base_pdf, extras)
                 st.session_state.reorg_source = all_names
 
-            st.markdown('<div class="section-box">', unsafe_allow_html=True)
-            st.markdown("### Arraste as páginas para reorganizar")
-            labels = st.session_state.reorg_editor_df.sort_values("ordem")["rotulo"].tolist()
-            sorted_labels = sort_items(labels, direction="horizontal", key="reorg_sort_center")
-            st.session_state.reorg_editor_df = apply_drag_order(st.session_state.reorg_editor_df, sorted_labels)
-            st.markdown("</div>", unsafe_allow_html=True)
+            st.session_state.reorg_editor_df = render_sort_area(
+                st.session_state.reorg_editor_df,
+                key_prefix="reorg",
+                title="Organização das páginas",
+            )
 
             edited_df = st.data_editor(
                 st.session_state.reorg_editor_df,
@@ -1240,9 +1229,6 @@ if st.session_state.tool is not None:
         else:
             st.info("Envie um PDF principal para começar a reorganização.")
 
-    # ================================================
-    # COMPRESS
-    # ================================================
     elif st.session_state.tool == "compress":
         st.markdown('<div class="section-box">', unsafe_allow_html=True)
         arquivos = st.file_uploader(
@@ -1287,9 +1273,6 @@ if st.session_state.tool is not None:
                         key="download_compress",
                     )
 
-    # ================================================
-    # IMG -> PDF
-    # ================================================
     elif st.session_state.tool == "imgpdf":
         st.markdown('<div class="section-box">', unsafe_allow_html=True)
         imagens = st.file_uploader(
@@ -1321,9 +1304,6 @@ if st.session_state.tool is not None:
                     key="download_imgpdf",
                 )
 
-    # ================================================
-    # PDF -> JPG
-    # ================================================
     elif st.session_state.tool == "pdfjpg":
         st.markdown('<div class="section-box">', unsafe_allow_html=True)
         arquivo = st.file_uploader(
@@ -1352,9 +1332,6 @@ if st.session_state.tool is not None:
                     key="download_pdfjpg",
                 )
 
-    # ================================================
-    # PDF -> WORD
-    # ================================================
     elif st.session_state.tool == "pdfword":
         st.markdown('<div class="section-box">', unsafe_allow_html=True)
         arquivo = st.file_uploader(
@@ -1382,9 +1359,6 @@ if st.session_state.tool is not None:
                     key="download_pdfword",
                 )
 
-    # ================================================
-    # WORD -> PDF
-    # ================================================
     elif st.session_state.tool == "wordpdf":
         st.markdown('<div class="section-box">', unsafe_allow_html=True)
         arquivo = st.file_uploader(
