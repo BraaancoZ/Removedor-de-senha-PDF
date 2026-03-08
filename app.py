@@ -1,5 +1,4 @@
 import io
-import os
 import zipfile
 from pathlib import Path
 from typing import Dict, List
@@ -18,7 +17,7 @@ st.set_page_config(
     page_title="PDF Fácil",
     page_icon="📄",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="expanded",
 )
 
 # =====================================================
@@ -58,9 +57,11 @@ def merge_pdfs_from_plan(page_plan: pd.DataFrame, file_bytes_map: Dict[str, byte
     writer = PdfWriter()
     plan = page_plan.sort_values("ordem")
     selected = plan[plan["incluir"] == True]
+
     for _, row in selected.iterrows():
         reader = PdfReader(io.BytesIO(file_bytes_map[row["arquivo"]]))
         writer.add_page(reader.pages[int(row["pagina_pdf"]) - 1])
+
     out = io.BytesIO()
     writer.write(out)
     return out.getvalue()
@@ -182,7 +183,7 @@ def docx_to_simple_pdf(docx_bytes: bytes) -> bytes:
     c.save()
     return out.getvalue()
 
-def get_pdf_thumbnail(pdf_bytes: bytes, page_number: int, zoom: float = 0.55):
+def get_pdf_thumbnail(pdf_bytes: bytes, page_number: int, zoom: float = 0.60):
     doc = fitz.open(stream=pdf_bytes, filetype="pdf")
     page = doc.load_page(page_number)
     pix = page.get_pixmap(matrix=fitz.Matrix(zoom, zoom), alpha=False)
@@ -201,7 +202,7 @@ def build_merge_editor(files):
                 "pagina_pdf": p + 1,
                 "incluir": True,
                 "ordem": len(rows) + 1,
-                "rotulo": f"{f.name} - página {p+1}"
+                "rotulo": f"{f.name} - página {p+1}",
             })
     return pd.DataFrame(rows)
 
@@ -215,7 +216,7 @@ def build_single_editor(file_name: str, file_bytes: bytes):
             "pagina_pdf": p + 1,
             "incluir": True,
             "ordem": p + 1,
-            "rotulo": f"Página {p+1}"
+            "rotulo": f"Página {p+1}",
         })
     return pd.DataFrame(rows)
 
@@ -231,7 +232,7 @@ def build_reorganize_editor(base_pdf, extra_pdfs):
                 "pagina_pdf": p + 1,
                 "incluir": True,
                 "ordem": len(rows) + 1,
-                "rotulo": f"{f.name} - página {p+1}"
+                "rotulo": f"{f.name} - página {p+1}",
             })
     return pd.DataFrame(rows)
 
@@ -244,7 +245,7 @@ def apply_drag_order(df: pd.DataFrame, sorted_labels: List[str]) -> pd.DataFrame
         ordered_rows.append(row)
     return pd.DataFrame(ordered_rows)
 
-def render_previews(plan_df: pd.DataFrame, file_bytes_map: Dict[str, bytes], title="Preview das páginas"):
+def render_professional_preview(plan_df: pd.DataFrame, file_bytes_map: Dict[str, bytes], title="Preview das páginas"):
     selected = plan_df[plan_df["incluir"] == True].sort_values("ordem")
 
     st.markdown(f"### {title}")
@@ -260,12 +261,12 @@ def render_previews(plan_df: pd.DataFrame, file_bytes_map: Dict[str, bytes], tit
                     img = get_pdf_thumbnail(
                         file_bytes_map[item["arquivo"]],
                         int(item["pagina_pdf"]) - 1,
-                        zoom=0.50
+                        zoom=0.58
                     )
                     st.markdown(
                         f"""
-                        <div class="page-shell">
-                            <div class="page-number-big">{int(item['ordem'])}</div>
+                        <div class="preview-page-card">
+                            <div class="page-order-badge">{int(item['ordem'])}</div>
                         </div>
                         """,
                         unsafe_allow_html=True,
@@ -278,17 +279,17 @@ def render_previews(plan_df: pd.DataFrame, file_bytes_map: Dict[str, bytes], tit
                             Página {int(item['pagina_pdf'])}
                         </div>
                         """,
-                        unsafe_allow_html=True
+                        unsafe_allow_html=True,
                     )
                 except Exception:
                     st.markdown(
                         f"""
-                        <div class="preview-card">
+                        <div class="preview-card-fallback">
                             Prévia indisponível<br>
                             {item['arquivo']} - página {int(item['pagina_pdf'])}
                         </div>
                         """,
-                        unsafe_allow_html=True
+                        unsafe_allow_html=True,
                     )
 
 # =====================================================
@@ -328,7 +329,7 @@ p, label, div, span, h1, h2, h3 {
 }
 
 .top-menu-wrap {
-    max-width: 1380px;
+    max-width: 1420px;
     margin: 0 auto 18px auto;
 }
 
@@ -338,16 +339,22 @@ p, label, div, span, h1, h2, h3 {
 }
 
 .tool-card {
-    background: rgba(255,255,255,0.97);
-    border: 1px solid rgba(147,197,253,0.30);
+    background: rgba(255,255,255,0.98);
+    border: 1px solid rgba(147,197,253,0.22);
     border-radius: 18px;
     padding: 22px 18px;
     text-align: center;
-    box-shadow: 0 10px 24px rgba(96, 165, 250, 0.04);
+    box-shadow: 0 10px 24px rgba(96, 165, 250, 0.03);
     min-height: 178px;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
+    transition: transform .18s ease, box-shadow .18s ease;
+}
+
+.tool-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 14px 28px rgba(96, 165, 250, 0.06);
 }
 
 .tool-title {
@@ -365,23 +372,23 @@ p, label, div, span, h1, h2, h3 {
 }
 
 .tool-panel {
-    max-width: 1020px;
+    max-width: 1040px;
     margin: 0 auto;
     background: #ffffff;
-    border: 1px solid rgba(147,197,253,0.28);
+    border: 1px solid rgba(147,197,253,0.22);
     border-radius: 20px;
     padding: 28px;
-    box-shadow: 0 10px 24px rgba(96, 165, 250, 0.04);
+    box-shadow: 0 10px 24px rgba(96, 165, 250, 0.03);
 }
 
 .tool-banner {
-    max-width: 1020px;
+    max-width: 1040px;
     margin: 0 auto 18px auto;
     background: #ffffff;
-    border: 1px solid rgba(147,197,253,0.28);
+    border: 1px solid rgba(147,197,253,0.22);
     border-radius: 20px;
     padding: 26px 18px;
-    box-shadow: 0 10px 24px rgba(96, 165, 250, 0.04);
+    box-shadow: 0 10px 24px rgba(96, 165, 250, 0.03);
     text-align: center;
 }
 
@@ -398,20 +405,23 @@ p, label, div, span, h1, h2, h3 {
     font-size: 0.98rem;
 }
 
-.page-shell {
+.preview-page-card {
     text-align: center;
-    margin-bottom: 6px;
+    margin-bottom: 8px;
 }
 
-.page-number-big {
-    display: inline-block;
-    min-width: 44px;
-    padding: 6px 12px;
+.page-order-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 54px;
+    height: 54px;
     border-radius: 999px;
-    background: #e0f2fe;
+    background: #dbeafe;
     color: #0c4a6e !important;
+    font-size: 1.4rem;
     font-weight: 800;
-    font-size: 1.2rem;
+    box-shadow: 0 6px 14px rgba(96, 165, 250, 0.10);
 }
 
 .page-meta {
@@ -419,14 +429,18 @@ p, label, div, span, h1, h2, h3 {
     font-size: 0.88rem;
     color: #334155 !important;
     margin-top: 8px;
-    margin-bottom: 14px;
+    margin-bottom: 16px;
+    background: #ffffff;
+    border: 1px solid rgba(147,197,253,0.18);
+    border-radius: 12px;
+    padding: 8px;
 }
 
-.preview-card {
+.preview-card-fallback {
     background: #ffffff;
-    border: 1px solid rgba(147,197,253,0.28);
-    border-radius: 14px;
-    padding: 12px;
+    border: 1px solid rgba(147,197,253,0.18);
+    border-radius: 12px;
+    padding: 14px;
     text-align: center;
 }
 
@@ -449,7 +463,7 @@ label {
 
 [data-testid="stFileUploaderDropzone"] {
     background: #ffffff !important;
-    border: 2px dashed rgba(147,197,253,0.55) !important;
+    border: 2px dashed rgba(147,197,253,0.48) !important;
     border-radius: 16px !important;
 }
 
@@ -472,7 +486,7 @@ label {
     font-size: 0 !important;
     background: #eff6ff !important;
     color: #1e40af !important;
-    border: 1px solid rgba(147,197,253,0.55) !important;
+    border: 1px solid rgba(147,197,253,0.45) !important;
     border-radius: 10px !important;
 }
 
@@ -494,7 +508,7 @@ label {
     border-radius: 10px !important;
     padding: 10px 20px !important;
     font-weight: 700 !important;
-    box-shadow: 0 8px 18px rgba(96, 165, 250, 0.12) !important;
+    box-shadow: 0 8px 18px rgba(96, 165, 250, 0.10) !important;
 }
 
 .stButton > button:hover {
@@ -504,12 +518,12 @@ label {
 
 .top-menu-wrap .stButton > button {
     color: #082f49 !important;
-    background: rgba(147,197,253,0.72) !important;
+    background: rgba(147,197,253,0.65) !important;
 }
 
 .top-menu-wrap .stButton > button:hover {
     color: #082f49 !important;
-    background: rgba(96,165,250,0.86) !important;
+    background: rgba(96,165,250,0.82) !important;
 }
 
 [data-testid="stDownloadButton"] {
@@ -536,7 +550,7 @@ input, textarea {
 
 [data-testid="stSidebar"] {
     background: #f0f9ff !important;
-    border-right: 1px solid rgba(147,197,253,0.35);
+    border-right: 1px solid rgba(147,197,253,0.28);
 }
 
 [data-testid="stSidebar"] * {
@@ -565,76 +579,32 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # =====================================================
-# ESTADO
+# STATE
 # =====================================================
-
-MAIN_TOOLS = {
-    "unlock": "🔓 Remover senha",
-    "merge": "📎 Juntar PDFs",
-    "split": "✂️ Dividir PDF",
-    "reorganize": "🗂️ Reorganizar PDF",
-    "compress": "🗜️ Comprimir PDF",
-}
-
-CONVERSION_TOOLS = {
-    "imgpdf": "🖼️ JPG para PDF",
-    "pdfjpg": "🖼️ PDF para JPG",
-    "pdfword": "📄 PDF para Word",
-    "wordpdf": "📄 Word para PDF",
-}
-
-DESCRIPTIONS = {
-    "unlock": "Remova a senha de arquivos protegidos",
-    "merge": "Combine vários PDFs em um único arquivo",
-    "split": "Separe ou reorganize páginas de um PDF",
-    "reorganize": "Reordene, exclua ou adicione páginas",
-    "compress": "Reduza o tamanho do arquivo",
-    "imgpdf": "Converta imagens JPG/PNG em PDF",
-    "pdfjpg": "Transforme páginas do PDF em JPG",
-    "pdfword": "Converta texto do PDF em Word",
-    "wordpdf": "Converta DOCX em PDF simples",
-}
-
-BANNERS = {
-    "unlock": ("🔓 Remover senha de PDF", "Envie um ou mais PDFs protegidos, digite a senha e baixe o resultado."),
-    "merge": ("📎 Juntar PDFs", "Envie vários PDFs, arraste as páginas no menu lateral e acompanhe o preview no centro."),
-    "split": ("✂️ Dividir PDF", "Escolha um PDF, reorganize ou exclua páginas pelo menu lateral e use a divisão clássica se quiser."),
-    "reorganize": ("🗂️ Reorganizar PDF", "Arraste páginas para reordenar, exclua o que não quer e adicione páginas de PDFs extras."),
-    "compress": ("🗜️ Comprimir PDF", "Reduza o tamanho de um ou mais PDFs."),
-    "imgpdf": ("🖼️ JPG para PDF", "Envie várias imagens e gere um único PDF."),
-    "pdfjpg": ("🖼️ PDF para JPG", "Converta as páginas do PDF em imagens JPG."),
-    "pdfword": ("📄 PDF para Word", "Extraia o texto do PDF e gere um arquivo .docx."),
-    "wordpdf": ("📄 Word para PDF", "Converta um .docx em PDF simples, com foco em texto."),
-}
 
 if "tool" not in st.session_state:
     st.session_state.tool = None
 
 # =====================================================
-# MENU SUPERIOR
+# TOP MENU
 # =====================================================
 
 st.markdown('<div class="top-menu-wrap">', unsafe_allow_html=True)
 
-top_cols = st.columns([1,1,1,1,1,1.4])
+top_cols = st.columns([1, 1, 1, 1, 1, 1.25])
 
-main_keys = list(MAIN_TOOLS.keys())
-for idx, key in enumerate(main_keys):
+main_order = ["unlock", "merge", "split", "reorganize", "compress"]
+for idx, key in enumerate(main_order):
     with top_cols[idx]:
         if st.button(MAIN_TOOLS[key], key=f"top_{key}"):
             st.session_state.tool = key
             st.rerun()
 
 with top_cols[-1]:
-    conversion_choice = st.selectbox(
-        "Conversões",
-        ["Selecionar conversão"] + list(CONVERSION_TOOLS.values()),
-        key="top_conversion_selector"
-    )
-    if conversion_choice != "Selecionar conversão":
-        for tool_key, label in CONVERSION_TOOLS.items():
-            if label == conversion_choice:
-                st.session_state.tool = tool_key
+    with st.popover("Converter PDF"):
+        for key, label in CONVERSION_TOOLS.items():
+            if st.button(label, key=f"popover_{key}"):
+                st.session_state.tool = key
                 st.rerun()
 
 st.markdown('</div>', unsafe_allow_html=True)
@@ -649,11 +619,11 @@ if st.session_state.tool is None:
     home_order = [
         "unlock", "merge", "split",
         "reorganize", "compress", "imgpdf",
-        "pdfjpg", "pdfword", "wordpdf"
+        "pdfjpg", "pdfword", "wordpdf",
     ]
 
     rows = list(chunk_list(home_order, 3))
-    for row_index, row in enumerate(rows):
+    for row in rows:
         cols = st.columns(3, gap="medium")
         for col, key in zip(cols, row):
             with col:
@@ -671,10 +641,10 @@ if st.session_state.tool is None:
                     st.rerun()
         st.markdown("<div style='height:12px;'></div>", unsafe_allow_html=True)
 
-    st.markdown('</div>', unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)
 
 # =====================================================
-# TOOL VIEW
+# TOOL PANEL
 # =====================================================
 
 if st.session_state.tool is not None:
@@ -694,9 +664,9 @@ if st.session_state.tool is not None:
 
     st.markdown('<div class="tool-panel">', unsafe_allow_html=True)
 
-    # =================================================
+    # -----------------------------
     # REMOVER SENHA
-    # =================================================
+    # -----------------------------
     if st.session_state.tool == "unlock":
         arquivos = st.file_uploader(
             "Envie os PDFs",
@@ -704,10 +674,9 @@ if st.session_state.tool is not None:
             accept_multiple_files=True,
             key="unlock_files"
         )
-
         senha = st.text_input("Digite a senha", type="password")
 
-        button_cols = st.columns([1,1,1])
+        button_cols = st.columns([1, 1, 1])
         with button_cols[1]:
             desbloquear = st.button("Desbloquear PDFs", key="btn_unlock")
 
@@ -720,11 +689,10 @@ if st.session_state.tool is not None:
                 try:
                     if len(arquivos) == 1:
                         unlocked = unlock_pdf(arquivos[0].getvalue(), senha)
-                        original_name = arquivos[0].name
                         st.download_button(
                             "Baixar PDF",
                             unlocked,
-                            original_name,
+                            arquivos[0].name,
                             key="download_unlock_single"
                         )
                     else:
@@ -743,9 +711,9 @@ if st.session_state.tool is not None:
                 except Exception as e:
                     st.error(str(e))
 
-    # =================================================
+    # -----------------------------
     # JUNTAR PDFs
-    # =================================================
+    # -----------------------------
     elif st.session_state.tool == "merge":
         arquivos = st.file_uploader(
             "Selecione os PDFs",
@@ -767,9 +735,9 @@ if st.session_state.tool is not None:
             for a in arquivos:
                 st.sidebar.write(f"• {a.name}")
 
-            st.sidebar.write("### Arraste para reorganizar")
+            st.markdown("### Arraste as páginas para reorganizar")
             labels = st.session_state.merge_editor_df.sort_values("ordem")["rotulo"].tolist()
-            sorted_labels = sort_items(labels, direction="vertical", key="merge_sortable")
+            sorted_labels = sort_items(labels, direction="horizontal", key="merge_sort_center")
             st.session_state.merge_editor_df = apply_drag_order(st.session_state.merge_editor_df, sorted_labels)
 
             st.sidebar.write("### Incluir / excluir páginas")
@@ -790,9 +758,9 @@ if st.session_state.tool is not None:
             )
             st.session_state.merge_editor_df = edited_df
 
-            render_previews(st.session_state.merge_editor_df, file_bytes_map, "Preview das páginas selecionadas")
+            render_professional_preview(st.session_state.merge_editor_df, file_bytes_map, "Preview das páginas selecionadas")
 
-        button_cols = st.columns([1,1,1])
+        button_cols = st.columns([1, 1, 1])
         with button_cols[1]:
             juntar = st.button("Juntar PDFs", key="btn_merge")
 
@@ -801,8 +769,7 @@ if st.session_state.tool is not None:
                 st.warning("Envie pelo menos um PDF.")
             else:
                 selected = st.session_state.merge_editor_df
-                selected = selected[selected["incluir"] == True]
-                if selected.empty:
+                if selected[selected["incluir"] == True].empty:
                     st.warning("Selecione pelo menos uma página.")
                 else:
                     merged = merge_pdfs_from_plan(st.session_state.merge_editor_df, file_bytes_map)
@@ -813,9 +780,9 @@ if st.session_state.tool is not None:
                         key="download_merge"
                     )
 
-    # =================================================
+    # -----------------------------
     # DIVIDIR PDF
-    # =================================================
+    # -----------------------------
     elif st.session_state.tool == "split":
         arquivo = st.file_uploader(
             "Selecione o PDF",
@@ -838,8 +805,9 @@ if st.session_state.tool is not None:
             st.sidebar.write("### Arquivo enviado")
             st.sidebar.write(f"• {arquivo.name}")
 
+            st.markdown("### Arraste as páginas para reorganizar")
             labels = st.session_state.split_editor_df.sort_values("ordem")["rotulo"].tolist()
-            sorted_labels = sort_items(labels, direction="vertical", key="split_sortable")
+            sorted_labels = sort_items(labels, direction="horizontal", key="split_sort_center")
             st.session_state.split_editor_df = apply_drag_order(st.session_state.split_editor_df, sorted_labels)
 
             edited_df = st.sidebar.data_editor(
@@ -859,7 +827,7 @@ if st.session_state.tool is not None:
             )
             st.session_state.split_editor_df = edited_df
 
-            render_previews(st.session_state.split_editor_df, file_map, "Preview das páginas")
+            render_professional_preview(st.session_state.split_editor_df, file_map, "Preview das páginas")
 
             st.markdown("### Divisão clássica")
             if paginas > 1:
@@ -878,24 +846,22 @@ if st.session_state.tool is not None:
 
                 if dividir:
                     parte1, parte2 = split_pdf(file_bytes, pagina)
-                    original = arquivo.name
                     st.download_button(
                         "Baixar parte 1",
                         parte1,
-                        with_suffix(original, "_parte1", ".pdf"),
+                        with_suffix(arquivo.name, "_parte1", ".pdf"),
                         key="download_split_1"
                     )
                     st.download_button(
                         "Baixar parte 2",
                         parte2,
-                        with_suffix(original, "_parte2", ".pdf"),
+                        with_suffix(arquivo.name, "_parte2", ".pdf"),
                         key="download_split_2"
                     )
 
                 if gerar_reorganizado:
                     selected = st.session_state.split_editor_df
-                    selected = selected[selected["incluir"] == True]
-                    if selected.empty:
+                    if selected[selected["incluir"] == True].empty:
                         st.warning("Selecione pelo menos uma página.")
                     else:
                         rebuilt = rebuild_pdf_from_plan(st.session_state.split_editor_df, file_map)
@@ -905,12 +871,10 @@ if st.session_state.tool is not None:
                             with_suffix(arquivo.name, "_reorganizado", ".pdf"),
                             key="download_split_rebuild"
                         )
-            else:
-                st.warning("O PDF precisa ter pelo menos 2 páginas.")
 
-    # =================================================
+    # -----------------------------
     # REORGANIZAR PDF
-    # =================================================
+    # -----------------------------
     elif st.session_state.tool == "reorganize":
         base_pdf = st.file_uploader(
             "Selecione o PDF principal",
@@ -918,7 +882,6 @@ if st.session_state.tool is not None:
             accept_multiple_files=False,
             key="reorg_base"
         )
-
         extra_pdfs = st.file_uploader(
             "Selecione PDFs extras para adicionar páginas",
             type=["pdf"],
@@ -943,9 +906,9 @@ if st.session_state.tool is not None:
             for n in all_names:
                 st.sidebar.write(f"• {n}")
 
-            st.sidebar.write("### Arraste para reorganizar")
+            st.markdown("### Arraste as páginas para reorganizar")
             labels = st.session_state.reorg_editor_df.sort_values("ordem")["rotulo"].tolist()
-            sorted_labels = sort_items(labels, direction="vertical", key="reorg_sortable")
+            sorted_labels = sort_items(labels, direction="horizontal", key="reorg_sort_center")
             st.session_state.reorg_editor_df = apply_drag_order(st.session_state.reorg_editor_df, sorted_labels)
 
             edited_df = st.sidebar.data_editor(
@@ -965,16 +928,15 @@ if st.session_state.tool is not None:
             )
             st.session_state.reorg_editor_df = edited_df
 
-            render_previews(st.session_state.reorg_editor_df, file_bytes_map, "Preview do PDF reorganizado")
+            render_professional_preview(st.session_state.reorg_editor_df, file_bytes_map, "Preview do PDF reorganizado")
 
-            button_cols = st.columns([1,1,1])
+            button_cols = st.columns([1, 1, 1])
             with button_cols[1]:
                 gerar_reorg = st.button("Gerar PDF reorganizado", key="btn_reorg")
 
             if gerar_reorg:
                 selected = st.session_state.reorg_editor_df
-                selected = selected[selected["incluir"] == True]
-                if selected.empty:
+                if selected[selected["incluir"] == True].empty:
                     st.warning("Selecione pelo menos uma página.")
                 else:
                     rebuilt = rebuild_pdf_from_plan(st.session_state.reorg_editor_df, file_bytes_map)
@@ -985,9 +947,9 @@ if st.session_state.tool is not None:
                         key="download_reorg"
                     )
 
-    # =================================================
+    # -----------------------------
     # COMPRIMIR PDF
-    # =================================================
+    # -----------------------------
     elif st.session_state.tool == "compress":
         arquivos = st.file_uploader(
             "Selecione os PDFs",
@@ -996,7 +958,7 @@ if st.session_state.tool is not None:
             key="compress_files"
         )
 
-        button_cols = st.columns([1,1,1])
+        button_cols = st.columns([1, 1, 1])
         with button_cols[1]:
             comprimir = st.button("Comprimir PDFs", key="btn_compress")
 
@@ -1026,9 +988,9 @@ if st.session_state.tool is not None:
                         key="download_compress"
                     )
 
-    # =================================================
+    # -----------------------------
     # JPG PARA PDF
-    # =================================================
+    # -----------------------------
     elif st.session_state.tool == "imgpdf":
         imagens = st.file_uploader(
             "Envie imagens",
@@ -1037,7 +999,7 @@ if st.session_state.tool is not None:
             key="imgpdf_files"
         )
 
-        button_cols = st.columns([1,1,1])
+        button_cols = st.columns([1, 1, 1])
         with button_cols[1]:
             converter = st.button("Converter em PDF", key="btn_imgpdf")
 
@@ -1046,10 +1008,7 @@ if st.session_state.tool is not None:
                 st.warning("Envie pelo menos uma imagem.")
             else:
                 pdf_bytes = images_to_pdf(imagens)
-                if len(imagens) == 1:
-                    output_name = with_ext(imagens[0].name, ".pdf")
-                else:
-                    output_name = "imagens_convertidas.pdf"
+                output_name = with_ext(imagens[0].name, ".pdf") if len(imagens) == 1 else "imagens_convertidas.pdf"
                 st.download_button(
                     "Baixar PDF",
                     pdf_bytes,
@@ -1057,9 +1016,9 @@ if st.session_state.tool is not None:
                     key="download_imgpdf"
                 )
 
-    # =================================================
+    # -----------------------------
     # PDF PARA JPG
-    # =================================================
+    # -----------------------------
     elif st.session_state.tool == "pdfjpg":
         arquivo = st.file_uploader(
             "Selecione o PDF",
@@ -1068,7 +1027,7 @@ if st.session_state.tool is not None:
             key="pdfjpg_file"
         )
 
-        button_cols = st.columns([1,1,1])
+        button_cols = st.columns([1, 1, 1])
         with button_cols[1]:
             converter_jpg = st.button("Converter para JPG", key="btn_pdfjpg")
 
@@ -1087,9 +1046,9 @@ if st.session_state.tool is not None:
                 except Exception as e:
                     st.error(f"Não foi possível converter este PDF: {e}")
 
-    # =================================================
+    # -----------------------------
     # PDF PARA WORD
-    # =================================================
+    # -----------------------------
     elif st.session_state.tool == "pdfword":
         arquivo = st.file_uploader(
             "Selecione o PDF",
@@ -1098,7 +1057,7 @@ if st.session_state.tool is not None:
             key="pdfword_file"
         )
 
-        button_cols = st.columns([1,1,1])
+        button_cols = st.columns([1, 1, 1])
         with button_cols[1]:
             converter_word = st.button("Converter para Word", key="btn_pdfword")
 
@@ -1117,9 +1076,9 @@ if st.session_state.tool is not None:
                 except Exception as e:
                     st.error(f"Não foi possível converter este PDF: {e}")
 
-    # =================================================
+    # -----------------------------
     # WORD PARA PDF
-    # =================================================
+    # -----------------------------
     elif st.session_state.tool == "wordpdf":
         arquivo = st.file_uploader(
             "Selecione o arquivo Word (.docx)",
@@ -1128,7 +1087,7 @@ if st.session_state.tool is not None:
             key="wordpdf_file"
         )
 
-        button_cols = st.columns([1,1,1])
+        button_cols = st.columns([1, 1, 1])
         with button_cols[1]:
             converter_pdf = st.button("Converter para PDF", key="btn_wordpdf")
 
@@ -1147,6 +1106,6 @@ if st.session_state.tool is not None:
                 except Exception as e:
                     st.error(f"Não foi possível converter este Word: {e}")
 
-    st.markdown('</div>', unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)
 
 st.markdown('<div class="footer-note">Ferramentas PDF gratuitas online</div>', unsafe_allow_html=True)
