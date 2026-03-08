@@ -1,7 +1,7 @@
 import io
 import zipfile
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 import fitz  # PyMuPDF
 import pandas as pd
@@ -72,7 +72,7 @@ BANNERS = {
     ),
     "merge": (
         "Juntar PDFs",
-        "Envie vários PDFs, organize as páginas e gere um único arquivo final.",
+        "Envie vários PDFs, arraste as páginas para organizar e gere um único arquivo final.",
     ),
     "split": (
         "Dividir PDF",
@@ -109,6 +109,12 @@ FEATURE_CHIPS = [
     "Funciona no celular",
     "Rápido",
     "Gratuito",
+]
+
+HOME_ORDER = [
+    "unlock", "merge", "split",
+    "reorganize", "compress", "imgpdf",
+    "pdfjpg", "pdfword", "wordpdf",
 ]
 
 if "tool" not in st.session_state:
@@ -149,9 +155,9 @@ def human_size(num_bytes: int) -> str:
 
 def reset_editor_states():
     for key in [
-        "merge_editor_df", "merge_source",
-        "split_editor_df", "split_source",
-        "reorg_editor_df", "reorg_source",
+        "merge_editor_df", "merge_source", "merge_selected_page",
+        "split_editor_df", "split_source", "split_selected_page",
+        "reorg_editor_df", "reorg_source", "reorg_selected_page",
     ]:
         if key in st.session_state:
             del st.session_state[key]
@@ -397,55 +403,6 @@ def apply_drag_order(df: pd.DataFrame, sorted_labels: List[str]) -> pd.DataFrame
     return pd.DataFrame(ordered_rows)
 
 
-def render_professional_preview(plan_df: pd.DataFrame, file_bytes_map: Dict[str, bytes], title="Preview das páginas"):
-    selected = plan_df[plan_df["incluir"] == True].sort_values("ordem")
-
-    st.markdown(f"### {title}")
-    if selected.empty:
-        st.info("Nenhuma página selecionada.")
-        return
-
-    records = selected.to_dict("records")
-    for chunk in chunk_list(records, 4):
-        cols = st.columns(4, gap="medium")
-        for col, item in zip(cols, chunk):
-            with col:
-                try:
-                    img = get_pdf_thumbnail(
-                        file_bytes_map[item["arquivo"]],
-                        int(item["pagina_pdf"]) - 1,
-                        zoom=0.58,
-                    )
-                    st.markdown(
-                        f"""
-                        <div class="preview-page-card">
-                            <div class="page-order-badge">{int(item["ordem"])}</div>
-                        </div>
-                        """,
-                        unsafe_allow_html=True,
-                    )
-                    st.image(img, use_container_width=True)
-                    st.markdown(
-                        f"""
-                        <div class="page-meta">
-                            <strong>{item["arquivo"]}</strong><br>
-                            Página {int(item["pagina_pdf"])}
-                        </div>
-                        """,
-                        unsafe_allow_html=True,
-                    )
-                except Exception:
-                    st.markdown(
-                        f"""
-                        <div class="preview-card-fallback">
-                            Prévia indisponível<br>
-                            {item["arquivo"]} - página {int(item["pagina_pdf"])}
-                        </div>
-                        """,
-                        unsafe_allow_html=True,
-                    )
-
-
 def render_image_preview(image_files):
     if not image_files:
         return
@@ -494,6 +451,84 @@ def render_sort_area(df: pd.DataFrame, key_prefix: str, title: str):
     st.markdown("</div>", unsafe_allow_html=True)
     return new_df
 
+
+def render_clickable_preview(
+    plan_df: pd.DataFrame,
+    file_bytes_map: Dict[str, bytes],
+    title: str,
+    selected_state_key: str,
+):
+    selected = plan_df[plan_df["incluir"] == True].sort_values("ordem")
+
+    st.markdown(f"### {title}")
+    if selected.empty:
+        st.info("Nenhuma página selecionada.")
+        return
+
+    rows = selected.to_dict("records")
+    for chunk in chunk_list(rows, 4):
+        cols = st.columns(4, gap="medium")
+        for col, item in zip(cols, chunk):
+            page_id = item["id"]
+            is_active = st.session_state.get(selected_state_key) == page_id
+
+            with col:
+                try:
+                    img = get_pdf_thumbnail(
+                        file_bytes_map[item["arquivo"]],
+                        int(item["pagina_pdf"]) - 1,
+                        zoom=0.75 if is_active else 0.58,
+                    )
+                    st.markdown(
+                        f"""
+                        <div class="preview-page-card">
+                            <div class="page-order-badge {'active-badge' if is_active else ''}">{int(item["ordem"])}</div>
+                        </div>
+                        """,
+                        unsafe_allow_html=True,
+                    )
+                    st.image(img, use_container_width=True)
+                    if st.button(
+                        f"Selecionar página {int(item['ordem'])}",
+                        key=f"{selected_state_key}_{page_id}",
+                    ):
+                        st.session_state[selected_state_key] = page_id
+                        st.rerun()
+
+                    st.markdown(
+                        f"""
+                        <div class="page-meta {'page-meta-active' if is_active else ''}">
+                            <strong>{item["arquivo"]}</strong><br>
+                            Página {int(item["pagina_pdf"])}
+                        </div>
+                        """,
+                        unsafe_allow_html=True,
+                    )
+                except Exception:
+                    st.markdown(
+                        f"""
+                        <div class="preview-card-fallback">
+                            Prévia indisponível<br>
+                            {item["arquivo"]} - página {int(item["pagina_pdf"])}
+                        </div>
+                        """,
+                        unsafe_allow_html=True,
+                    )
+
+
+def render_home_card(key: str):
+    label_html = f"""
+    <div class="home-card-inner">
+        <div class="home-card-icon">{TOOL_ICONS[key]}</div>
+        <div class="home-card-title">{ALL_TOOLS[key]}</div>
+        <div class="home-card-desc">{DESCRIPTIONS[key]}</div>
+    </div>
+    """
+    st.markdown(label_html, unsafe_allow_html=True)
+    st.markdown('<div class="home-card-btn">', unsafe_allow_html=True)
+    if st.button("Abrir ferramenta", key=f"home_card_{key}"):
+        set_tool(key)
+    st.markdown("</div>", unsafe_allow_html=True)
 
 # =====================================================
 # CSS
@@ -656,6 +691,13 @@ header, [data-testid="stHeader"] {
     margin-bottom: 16px;
 }
 
+.upload-zone-title {
+    text-align: center;
+    font-weight: 800;
+    font-size: 1.1rem;
+    margin-bottom: 8px;
+}
+
 .upload-summary {
     display: flex;
     gap: 14px;
@@ -686,6 +728,10 @@ header, [data-testid="stHeader"] {
     font-weight: 900;
 }
 
+.active-badge {
+    box-shadow: 0 0 0 4px rgba(229, 50, 45, 0.16);
+}
+
 .page-meta {
     text-align: center;
     font-size: 0.88rem;
@@ -697,6 +743,11 @@ header, [data-testid="stHeader"] {
     border-radius: 12px;
     padding: 8px;
     min-height: 62px;
+}
+
+.page-meta-active {
+    border-color: #f5b3b1;
+    background: #fff7f7;
 }
 
 .preview-card-fallback {
@@ -733,7 +784,9 @@ header, [data-testid="stHeader"] {
 [data-testid="stFileUploaderDropzone"] {
     background: #fff !important;
     border: 2px dashed #d1d5db !important;
-    border-radius: 16px !important;
+    border-radius: 18px !important;
+    padding-top: 28px !important;
+    padding-bottom: 28px !important;
 }
 
 [data-testid="stFileUploaderDropzone"]:hover {
@@ -754,6 +807,7 @@ header, [data-testid="stHeader"] {
     text-align: center;
     color: var(--text) !important;
     font-weight: 700;
+    font-size: 1rem;
 }
 
 [data-testid="stFileUploader"] section button {
@@ -791,21 +845,50 @@ header, [data-testid="stHeader"] {
     box-shadow: none !important;
 }
 
-.home-card-btn .stButton > button {
-    min-height: 190px !important;
-    white-space: pre-wrap !important;
-    text-align: left !important;
-    background: #fff !important;
-    color: var(--text) !important;
-    border: 1px solid var(--line) !important;
-    box-shadow: var(--shadow) !important;
-    padding: 18px !important;
-    line-height: 1.5 !important;
+.home-card-shell {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    box-shadow: var(--shadow);
+    padding: 18px;
+    height: 100%;
+    min-height: 228px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
 }
 
-.home-card-btn .stButton > button:hover {
-    background: #fffafa !important;
-    border-color: #ffd4d4 !important;
+.home-card-inner {
+    min-height: 150px;
+}
+
+.home-card-icon {
+    width: 54px;
+    height: 54px;
+    border-radius: 16px;
+    background: #fff1f1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    margin-bottom: 14px;
+}
+
+.home-card-title {
+    font-size: 1.05rem;
+    font-weight: 900;
+    color: var(--text) !important;
+    margin-bottom: 8px;
+}
+
+.home-card-desc {
+    color: var(--muted) !important;
+    line-height: 1.5;
+    font-size: 0.95rem;
+}
+
+.home-card-btn .stButton > button {
+    min-height: 46px !important;
 }
 
 .footer-note {
@@ -826,6 +909,10 @@ header, [data-testid="stHeader"] {
 
     .tool-panel {
         padding: 16px 12px 20px 12px;
+    }
+
+    .home-card-shell {
+        min-height: 210px;
     }
 }
 </style>
@@ -885,22 +972,14 @@ with nav_cols[-1]:
 # =====================================================
 
 if st.session_state.tool is None:
-    home_order = [
-        "unlock", "merge", "split",
-        "reorganize", "compress", "imgpdf",
-        "pdfjpg", "pdfword", "wordpdf",
-    ]
-
     st.markdown("<div style='height:10px;'></div>", unsafe_allow_html=True)
 
-    for row in chunk_list(home_order, 3):
+    for row in chunk_list(HOME_ORDER, 3):
         cols = st.columns(3, gap="medium")
         for col, key in zip(cols, row):
             with col:
-                label = f"{TOOL_ICONS[key]}  {ALL_TOOLS[key]}\n\n{DESCRIPTIONS[key]}"
-                st.markdown('<div class="home-card-btn">', unsafe_allow_html=True)
-                if st.button(label, key=f"home_card_{key}"):
-                    set_tool(key)
+                st.markdown('<div class="home-card-shell">', unsafe_allow_html=True)
+                render_home_card(key)
                 st.markdown("</div>", unsafe_allow_html=True)
 
 # =====================================================
@@ -934,11 +1013,13 @@ if st.session_state.tool is not None:
 
     if st.session_state.tool == "unlock":
         st.markdown('<div class="section-box">', unsafe_allow_html=True)
+        st.markdown('<div class="upload-zone-title">Envie os PDFs protegidos</div>', unsafe_allow_html=True)
         arquivos = st.file_uploader(
             "Envie os PDFs protegidos",
             type=["pdf"],
             accept_multiple_files=True,
             key="unlock_files",
+            label_visibility="collapsed",
         )
         file_summary_box(arquivos, "PDF")
         senha = st.text_input("Digite a senha do PDF", type="password")
@@ -982,11 +1063,13 @@ if st.session_state.tool is not None:
 
     elif st.session_state.tool == "merge":
         st.markdown('<div class="section-box">', unsafe_allow_html=True)
+        st.markdown('<div class="upload-zone-title">Selecione os PDFs</div>', unsafe_allow_html=True)
         arquivos = st.file_uploader(
             "Selecione os PDFs",
             type=["pdf"],
             accept_multiple_files=True,
             key="merge_files",
+            label_visibility="collapsed",
         )
         file_summary_box(arquivos, "PDF")
         st.markdown("</div>", unsafe_allow_html=True)
@@ -1023,10 +1106,11 @@ if st.session_state.tool is not None:
             )
             st.session_state.merge_editor_df = edited_df
 
-            render_professional_preview(
+            render_clickable_preview(
                 st.session_state.merge_editor_df,
                 file_bytes_map,
                 "Preview das páginas selecionadas",
+                "merge_selected_page",
             )
 
         action_cols = st.columns([1, 1, 1])
@@ -1051,11 +1135,13 @@ if st.session_state.tool is not None:
 
     elif st.session_state.tool == "split":
         st.markdown('<div class="section-box">', unsafe_allow_html=True)
+        st.markdown('<div class="upload-zone-title">Selecione o PDF</div>', unsafe_allow_html=True)
         arquivo = st.file_uploader(
             "Selecione o PDF",
             type=["pdf"],
             accept_multiple_files=False,
             key="split_file",
+            label_visibility="collapsed",
         )
         file_summary_box(arquivo, "PDF")
         st.markdown("</div>", unsafe_allow_html=True)
@@ -1093,10 +1179,11 @@ if st.session_state.tool is not None:
             )
             st.session_state.split_editor_df = edited_df
 
-            render_professional_preview(
+            render_clickable_preview(
                 st.session_state.split_editor_df,
                 file_map,
                 "Preview das páginas",
+                "split_selected_page",
             )
 
             st.markdown('<div class="section-box">', unsafe_allow_html=True)
@@ -1151,11 +1238,13 @@ if st.session_state.tool is not None:
 
     elif st.session_state.tool == "reorganize":
         st.markdown('<div class="section-box">', unsafe_allow_html=True)
+        st.markdown('<div class="upload-zone-title">Selecione o PDF principal e os extras</div>', unsafe_allow_html=True)
         base_pdf = st.file_uploader(
             "Selecione o PDF principal",
             type=["pdf"],
             accept_multiple_files=False,
             key="reorg_base",
+            label_visibility="collapsed",
         )
         extra_pdfs = st.file_uploader(
             "Selecione PDFs extras para adicionar páginas",
@@ -1204,10 +1293,11 @@ if st.session_state.tool is not None:
             )
             st.session_state.reorg_editor_df = edited_df
 
-            render_professional_preview(
+            render_clickable_preview(
                 st.session_state.reorg_editor_df,
                 file_bytes_map,
                 "Preview do PDF reorganizado",
+                "reorg_selected_page",
             )
 
             action_cols = st.columns([1, 1, 1])
@@ -1231,11 +1321,13 @@ if st.session_state.tool is not None:
 
     elif st.session_state.tool == "compress":
         st.markdown('<div class="section-box">', unsafe_allow_html=True)
+        st.markdown('<div class="upload-zone-title">Selecione os PDFs</div>', unsafe_allow_html=True)
         arquivos = st.file_uploader(
             "Selecione os PDFs",
             type=["pdf"],
             accept_multiple_files=True,
             key="compress_files",
+            label_visibility="collapsed",
         )
         file_summary_box(arquivos, "PDF")
         st.markdown("</div>", unsafe_allow_html=True)
@@ -1275,11 +1367,13 @@ if st.session_state.tool is not None:
 
     elif st.session_state.tool == "imgpdf":
         st.markdown('<div class="section-box">', unsafe_allow_html=True)
+        st.markdown('<div class="upload-zone-title">Envie imagens JPG ou PNG</div>', unsafe_allow_html=True)
         imagens = st.file_uploader(
             "Envie imagens",
             type=["png", "jpg", "jpeg"],
             accept_multiple_files=True,
             key="imgpdf_files",
+            label_visibility="collapsed",
         )
         file_summary_box(imagens, "JPG / PNG")
         st.markdown("</div>", unsafe_allow_html=True)
@@ -1306,11 +1400,13 @@ if st.session_state.tool is not None:
 
     elif st.session_state.tool == "pdfjpg":
         st.markdown('<div class="section-box">', unsafe_allow_html=True)
+        st.markdown('<div class="upload-zone-title">Selecione o PDF</div>', unsafe_allow_html=True)
         arquivo = st.file_uploader(
             "Selecione o PDF",
             type=["pdf"],
             accept_multiple_files=False,
             key="pdfjpg_file",
+            label_visibility="collapsed",
         )
         file_summary_box(arquivo, "PDF")
         quality = st.slider("Qualidade do JPG", min_value=60, max_value=100, value=90, step=5)
@@ -1334,11 +1430,13 @@ if st.session_state.tool is not None:
 
     elif st.session_state.tool == "pdfword":
         st.markdown('<div class="section-box">', unsafe_allow_html=True)
+        st.markdown('<div class="upload-zone-title">Selecione o PDF</div>', unsafe_allow_html=True)
         arquivo = st.file_uploader(
             "Selecione o PDF",
             type=["pdf"],
             accept_multiple_files=False,
             key="pdfword_file",
+            label_visibility="collapsed",
         )
         file_summary_box(arquivo, "PDF")
         st.markdown("</div>", unsafe_allow_html=True)
@@ -1361,11 +1459,13 @@ if st.session_state.tool is not None:
 
     elif st.session_state.tool == "wordpdf":
         st.markdown('<div class="section-box">', unsafe_allow_html=True)
+        st.markdown('<div class="upload-zone-title">Selecione o arquivo Word (.docx)</div>', unsafe_allow_html=True)
         arquivo = st.file_uploader(
             "Selecione o arquivo Word (.docx)",
             type=["docx"],
             accept_multiple_files=False,
             key="wordpdf_file",
+            label_visibility="collapsed",
         )
         file_summary_box(arquivo, "DOCX")
         st.markdown("</div>", unsafe_allow_html=True)
