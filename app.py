@@ -12,7 +12,7 @@ st.set_page_config(
 )
 
 # =====================================================
-# CSS - LIGHT MODE
+# CSS - MODO LIGHT FIXO
 # =====================================================
 
 st.markdown("""
@@ -30,20 +30,15 @@ p, label, div, span, h1, h2, h3 {
     color: #0f172a !important;
 }
 
-/* Esconde sidebar recolhida */
-[data-testid="collapsedControl"] {
-    display: none !important;
-}
-
-/* Hero */
+/* HERO */
 .hero {
     text-align: center;
-    margin-top: 14px;
+    margin-top: 16px;
     margin-bottom: 24px;
 }
 
 .hero h1 {
-    font-size: 2.55rem;
+    font-size: 2.5rem;
     margin-bottom: 6px;
     color: #0f172a !important;
 }
@@ -53,13 +48,13 @@ p, label, div, span, h1, h2, h3 {
     font-size: 1rem;
 }
 
-/* Menu superior */
+/* MENU SUPERIOR */
 .top-menu-wrap {
     max-width: 1180px;
-    margin: 0 auto 18px auto;
+    margin: 0 auto 22px auto;
 }
 
-/* Cards da home */
+/* CARDS HOME */
 .cards-wrapper {
     max-width: 980px;
     margin: 0 auto 28px auto;
@@ -67,7 +62,7 @@ p, label, div, span, h1, h2, h3 {
 
 .tool-card {
     background: #ffffff;
-    border: 1px solid #cfe3ff;
+    border: 1px solid #dbeafe;
     border-radius: 18px;
     padding: 22px 18px;
     text-align: center;
@@ -79,7 +74,7 @@ p, label, div, span, h1, h2, h3 {
 }
 
 .tool-title {
-    font-size: 1.05rem;
+    font-size: 1.06rem;
     font-weight: 700;
     color: #0f172a !important;
     margin-bottom: 8px;
@@ -92,46 +87,52 @@ p, label, div, span, h1, h2, h3 {
     margin-bottom: 18px;
 }
 
-/* Painel da ferramenta */
+/* PAINEL DA FERRAMENTA */
 .tool-panel {
     max-width: 920px;
     margin: 0 auto;
-}
-
-/* Cabeçalho da ferramenta dentro do balão */
-.tool-header-box {
     background: #ffffff;
-    border: 1px solid #cfe3ff;
-    border-radius: 20px;
-    padding: 20px 24px;
-    box-shadow: 0 10px 24px rgba(96, 165, 250, 0.10);
-    margin-bottom: 18px;
-    text-align: center;
-}
-
-.tool-header-box h2 {
-    margin: 0;
-    font-size: 2rem;
-    color: #0f172a !important;
-}
-
-.tool-form-box {
-    background: #ffffff;
-    border: 1px solid #cfe3ff;
+    border: 1px solid #dbeafe;
     border-radius: 20px;
     padding: 28px;
     box-shadow: 0 10px 24px rgba(96, 165, 250, 0.10);
 }
 
-/* Inputs */
+/* TÍTULO GRANDE DENTRO DO BALÃO */
+.tool-banner {
+    max-width: 920px;
+    margin: 0 auto 18px auto;
+    background: #ffffff;
+    border: 1px solid #dbeafe;
+    border-radius: 20px;
+    padding: 26px 18px;
+    box-shadow: 0 10px 24px rgba(96, 165, 250, 0.10);
+    text-align: center;
+}
+
+.tool-banner h2 {
+    margin: 0;
+    font-size: 2rem;
+    color: #0f172a !important;
+    font-weight: 800;
+}
+
+.tool-banner p {
+    margin: 8px 0 0 0;
+    color: #475569 !important;
+    font-size: 0.98rem;
+}
+
+/* CENTRALIZAÇÃO DOS INPUTS */
 [data-testid="stFileUploader"],
 .stTextInput,
 .stNumberInput {
-    max-width: 640px;
+    max-width: 620px;
     margin-left: auto !important;
     margin-right: auto !important;
 }
 
+/* LABELS */
 label {
     text-align: center !important;
     display: block !important;
@@ -140,7 +141,7 @@ label {
     font-weight: 500 !important;
 }
 
-/* Upload */
+/* UPLOADER */
 [data-testid="stFileUploaderDropzone"] {
     background: #ffffff !important;
     border: 2px dashed #bfdbfe !important;
@@ -162,7 +163,7 @@ label {
     font-weight: 600;
 }
 
-/* Botão do uploader */
+/* BOTÃO DO UPLOADER */
 [data-testid="stFileUploader"] section button {
     font-size: 0 !important;
     background: #eff6ff !important;
@@ -178,7 +179,7 @@ label {
     font-weight: 700;
 }
 
-/* Botões gerais */
+/* BOTÕES GERAIS */
 .stButton {
     text-align: center !important;
 }
@@ -198,7 +199,7 @@ label {
     color: white !important;
 }
 
-/* Download buttons */
+/* DOWNLOAD */
 [data-testid="stDownloadButton"] {
     text-align: center !important;
 }
@@ -212,7 +213,17 @@ label {
     font-weight: 700 !important;
 }
 
-/* Rodapé */
+/* CAMPOS */
+input, textarea {
+    color: #0f172a !important;
+}
+
+[data-baseweb="input"] {
+    background: #ffffff !important;
+    border-radius: 12px !important;
+}
+
+/* RODAPÉ */
 .footer-note {
     text-align: center;
     color: #475569 !important;
@@ -254,6 +265,14 @@ DESCRIPTIONS = {
     "imgpdf": "Crie PDF a partir de imagens",
 }
 
+BANNERS = {
+    "unlock": ("🔓 Remover senha de PDF", "Envie um ou mais PDFs protegidos, digite a senha e baixe o resultado."),
+    "merge": ("📎 Juntar PDFs", "Selecione vários arquivos PDF e gere um único documento final."),
+    "split": ("✂️ Dividir PDF", "Escolha um PDF e separe o arquivo em duas partes."),
+    "compress": ("🗜️ Comprimir PDF", "Reduza o tamanho do arquivo PDF mantendo o formato."),
+    "imgpdf": ("🖼️ Imagem para PDF", "Envie várias imagens e transforme tudo em um único PDF."),
+}
+
 if "tool" not in st.session_state:
     st.session_state.tool = None
 
@@ -263,13 +282,11 @@ if "tool" not in st.session_state:
 
 st.markdown('<div class="top-menu-wrap">', unsafe_allow_html=True)
 menu_cols = st.columns(len(TOOLS))
-
 for i, (key, name) in enumerate(TOOLS.items()):
     with menu_cols[i]:
         if st.button(name, key=f"top_{key}"):
             st.session_state.tool = key
             st.rerun()
-
 st.markdown('</div>', unsafe_allow_html=True)
 
 # =====================================================
@@ -355,8 +372,8 @@ def merge_pdfs(files) -> bytes:
     return buffer.getvalue()
 
 
-def split_pdf(file, split_after: int):
-    reader = PdfReader(file)
+def split_pdf(file_bytes: bytes, split_after: int):
+    reader = PdfReader(io.BytesIO(file_bytes))
     writer1 = PdfWriter()
     writer2 = PdfWriter()
 
@@ -392,24 +409,27 @@ def images_to_pdf(imagens) -> bytes:
 # =====================================================
 
 if st.session_state.tool is not None:
-    back_cols = st.columns([1, 1, 1])
+    back_cols = st.columns([1, 2, 1])
     with back_cols[1]:
         if st.button("⬅ Voltar para ferramentas"):
             st.session_state.tool = None
             st.rerun()
 
+    banner_title, banner_desc = BANNERS[st.session_state.tool]
+    st.markdown(
+        f"""
+        <div class="tool-banner">
+            <h2>{banner_title}</h2>
+            <p>{banner_desc}</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
     st.markdown('<div class="tool-panel">', unsafe_allow_html=True)
 
     # REMOVER SENHA
     if st.session_state.tool == "unlock":
-        st.markdown("""
-        <div class="tool-header-box">
-            <h2>🔓 Remover senha de PDF</h2>
-        </div>
-        """, unsafe_allow_html=True)
-
-        st.markdown('<div class="tool-form-box">', unsafe_allow_html=True)
-
         arquivos = st.file_uploader(
             "Envie os PDFs",
             type=["pdf"],
@@ -452,18 +472,8 @@ if st.session_state.tool is not None:
                 except Exception as e:
                     st.error(str(e))
 
-        st.markdown('</div>', unsafe_allow_html=True)
-
     # JUNTAR PDFs
     elif st.session_state.tool == "merge":
-        st.markdown("""
-        <div class="tool-header-box">
-            <h2>📎 Juntar PDFs</h2>
-        </div>
-        """, unsafe_allow_html=True)
-
-        st.markdown('<div class="tool-form-box">', unsafe_allow_html=True)
-
         arquivos = st.file_uploader(
             "Selecione os PDFs",
             type=["pdf"],
@@ -489,22 +499,17 @@ if st.session_state.tool is not None:
                         key="download_merge"
                     )
 
-        st.markdown('</div>', unsafe_allow_html=True)
-
     # DIVIDIR PDF
     elif st.session_state.tool == "split":
-        st.markdown("""
-        <div class="tool-header-box">
-            <h2>✂️ Dividir PDF</h2>
-        </div>
-        """, unsafe_allow_html=True)
-
-        st.markdown('<div class="tool-form-box">', unsafe_allow_html=True)
-
-        arquivo = st.file_uploader("Selecione o PDF", type=["pdf"], key="split_file")
+        arquivo = st.file_uploader(
+            "Selecione o PDF",
+            type=["pdf"],
+            accept_multiple_files=False,
+            key="split_file"
+        )
 
         if arquivo:
-            reader = PdfReader(arquivo)
+            reader = PdfReader(io.BytesIO(arquivo.getvalue()))
             paginas = len(reader.pages)
 
             if paginas > 1:
@@ -520,8 +525,7 @@ if st.session_state.tool is not None:
                     dividir = st.button("Dividir PDF", key="btn_split")
 
                 if dividir:
-                    parte1, parte2 = split_pdf(arquivo, pagina)
-
+                    parte1, parte2 = split_pdf(arquivo.getvalue(), pagina)
                     down1, down2 = st.columns(2)
                     with down1:
                         st.download_button("Baixar parte 1", parte1, "parte1.pdf", key="download_split_1")
@@ -530,58 +534,47 @@ if st.session_state.tool is not None:
             else:
                 st.warning("O PDF precisa ter pelo menos 2 páginas.")
 
-        st.markdown('</div>', unsafe_allow_html=True)
-
     # COMPRIMIR PDF
     elif st.session_state.tool == "compress":
-        st.markdown("""
-        <div class="tool-header-box">
-            <h2>🗜️ Comprimir PDF</h2>
-        </div>
-        """, unsafe_allow_html=True)
-
-        st.markdown('<div class="tool-form-box">', unsafe_allow_html=True)
-
-        arquivo = st.file_uploader("Selecione o PDF", type=["pdf"], key="compress_file")
+        arquivos = st.file_uploader(
+            "Selecione os PDFs",
+            type=["pdf"],
+            accept_multiple_files=True,
+            key="compress_files"
+        )
 
         button_cols = st.columns([1, 1, 1])
         with button_cols[1]:
-            comprimir = st.button("Comprimir PDF", key="btn_compress")
+            comprimir = st.button("Comprimir PDFs", key="btn_compress")
 
         if comprimir:
-            if not arquivo:
-                st.warning("Envie um PDF.")
+            if not arquivos:
+                st.warning("Envie pelo menos um PDF.")
             else:
-                reader = PdfReader(arquivo)
-                writer = PdfWriter()
+                zip_buffer = io.BytesIO()
+                with zipfile.ZipFile(zip_buffer, "w") as zip_file:
+                    for arquivo in arquivos:
+                        reader = PdfReader(io.BytesIO(arquivo.getvalue()))
+                        writer = PdfWriter()
 
-                for page in reader.pages:
-                    writer.add_page(page)
+                        for page in reader.pages:
+                            writer.add_page(page)
 
-                buffer = io.BytesIO()
-                writer.write(buffer)
+                        buffer = io.BytesIO()
+                        writer.write(buffer)
+                        zip_file.writestr(arquivo.name, buffer.getvalue())
 
                 download_cols = st.columns([1, 1, 1])
                 with download_cols[1]:
                     st.download_button(
-                        "Baixar PDF comprimido",
-                        buffer.getvalue(),
-                        "pdf_comprimido.pdf",
+                        "Baixar PDFs comprimidos",
+                        zip_buffer.getvalue(),
+                        "pdfs_comprimidos.zip",
                         key="download_compress"
                     )
 
-        st.markdown('</div>', unsafe_allow_html=True)
-
     # IMAGEM PARA PDF
     elif st.session_state.tool == "imgpdf":
-        st.markdown("""
-        <div class="tool-header-box">
-            <h2>🖼️ Imagem para PDF</h2>
-        </div>
-        """, unsafe_allow_html=True)
-
-        st.markdown('<div class="tool-form-box">', unsafe_allow_html=True)
-
         imagens = st.file_uploader(
             "Envie imagens",
             type=["png", "jpg", "jpeg"],
@@ -607,8 +600,6 @@ if st.session_state.tool is not None:
                         "imagens.pdf",
                         key="download_imgpdf"
                     )
-
-        st.markdown('</div>', unsafe_allow_html=True)
 
     st.markdown('</div>', unsafe_allow_html=True)
 
