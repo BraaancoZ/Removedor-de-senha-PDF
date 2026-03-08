@@ -13,8 +13,8 @@ st.set_page_config(page_title="PDF Fácil", page_icon="📄", layout="wide")
 st.markdown("""
 <style>
 html, body, [data-testid="stAppViewContainer"]{
-    background:#f3f4f6;
-    color:#111827;
+    background:#f8fafc;
+    color:#0f172a;
 }
 
 header{
@@ -34,11 +34,11 @@ header{
 .hero h1{
     font-size:2.5rem;
     margin-bottom:6px;
-    color:#111827;
+    color:#0f172a;
 }
 
 .hero p{
-    color:#4b5563;
+    color:#475569;
     font-size:1rem;
 }
 
@@ -51,11 +51,11 @@ header{
 /* Balões */
 .tool-card{
     background:#ffffff;
-    border:1px solid #e5e7eb;
+    border:1px solid #dbe4ee;
     border-radius:18px;
     padding:22px 18px;
     text-align:center;
-    box-shadow:0 8px 24px rgba(0,0,0,0.06);
+    box-shadow:0 10px 26px rgba(148, 163, 184, 0.14);
     min-height:180px;
     display:flex;
     flex-direction:column;
@@ -65,13 +65,13 @@ header{
 .tool-title{
     font-size:1.05rem;
     font-weight:700;
-    color:#111827;
+    color:#0f172a;
     margin-bottom:8px;
 }
 
 .tool-desc{
     font-size:0.92rem;
-    color:#6b7280;
+    color:#64748b;
     line-height:1.4;
     margin-bottom:18px;
 }
@@ -82,17 +82,26 @@ header{
 }
 
 .stButton > button{
-    background:#e5322d;
+    background:#ef4444;
     color:white;
     border:none;
     border-radius:10px;
     padding:10px 18px;
     font-weight:600;
+    box-shadow:0 8px 20px rgba(239, 68, 68, 0.18);
 }
 
 .stButton > button:hover{
-    background:#c92b27;
+    background:#dc2626;
     color:white;
+}
+
+/* Botões dentro das ferramentas */
+.tool-action{
+    display:flex;
+    justify-content:center;
+    margin-top:18px;
+    margin-bottom:4px;
 }
 
 /* Menu superior */
@@ -114,7 +123,7 @@ header{
     width:100%;
     left:0;
     text-align:center;
-    color:#111827;
+    color:#0f172a;
     font-weight:500;
 }
 
@@ -125,7 +134,7 @@ header{
 [data-testid="stFileUploader"] section button::after{
     content:"Selecionar arquivos";
     font-size:14px !important;
-    color:#111827;
+    color:#0f172a;
 }
 
 /* Inputs mais centralizados */
@@ -141,6 +150,7 @@ label{
     text-align:center !important;
     display:block;
     width:100%;
+    color:#0f172a !important;
 }
 
 /* Área da ferramenta */
@@ -148,26 +158,43 @@ label{
     max-width:900px;
     margin:0 auto;
     background:#ffffff;
-    border:1px solid #e5e7eb;
+    border:1px solid #dbe4ee;
     border-radius:18px;
     padding:24px;
-    box-shadow:0 8px 24px rgba(0,0,0,0.06);
+    box-shadow:0 10px 26px rgba(148, 163, 184, 0.14);
 }
 
 .tool-panel h2{
     text-align:center;
-    color:#111827;
+    color:#0f172a;
     margin-bottom:18px;
 }
 
 .footer-note{
     text-align:center;
-    color:#6b7280;
+    color:#64748b;
     margin-top:30px;
     margin-bottom:10px;
 }
 
-/* Dark mode */
+/* Melhor aparência dos campos */
+input, textarea{
+    background:#ffffff !important;
+    color:#0f172a !important;
+}
+
+[data-baseweb="input"]{
+    background:#ffffff !important;
+    border-radius:12px !important;
+}
+
+[data-testid="stFileUploaderDropzone"]{
+    background:#fefefe !important;
+    border:2px dashed #cbd5e1 !important;
+    border-radius:16px !important;
+}
+
+/* Dark mode suave */
 @media (prefers-color-scheme: dark){
     html, body, [data-testid="stAppViewContainer"]{
         background:#0f172a;
@@ -207,6 +234,15 @@ label{
 
     .footer-note{
         color:#cbd5e1;
+    }
+
+    label{
+        color:#f8fafc !important;
+    }
+
+    [data-testid="stFileUploaderDropzone"]{
+        background:#1e293b !important;
+        border:2px dashed #475569 !important;
     }
 }
 </style>
@@ -396,7 +432,11 @@ if st.session_state.tool is not None:
 
         senha = st.text_input("Digite a senha", type="password")
 
-        if st.button("Desbloquear PDFs"):
+        st.markdown('<div class="tool-action">', unsafe_allow_html=True)
+        desbloquear = st.button("Desbloquear PDFs")
+        st.markdown('</div>', unsafe_allow_html=True)
+
+        if desbloquear:
             if not arquivos:
                 st.warning("Envie pelo menos um PDF.")
             elif not senha:
@@ -435,7 +475,11 @@ if st.session_state.tool is not None:
             key="merge_files"
         )
 
-        if st.button("Juntar PDFs"):
+        st.markdown('<div class="tool-action">', unsafe_allow_html=True)
+        juntar = st.button("Juntar PDFs")
+        st.markdown('</div>', unsafe_allow_html=True)
+
+        if juntar:
             if not arquivos:
                 st.warning("Envie pelo menos um PDF.")
             else:
@@ -464,7 +508,11 @@ if st.session_state.tool is not None:
                     value=1
                 )
 
-                if st.button("Dividir PDF"):
+                st.markdown('<div class="tool-action">', unsafe_allow_html=True)
+                dividir = st.button("Dividir PDF")
+                st.markdown('</div>', unsafe_allow_html=True)
+
+                if dividir:
                     parte1, parte2 = split_pdf(arquivo, pagina)
                     st.download_button("Baixar parte 1", parte1, "parte1.pdf")
                     st.download_button("Baixar parte 2", parte2, "parte2.pdf")
@@ -477,11 +525,14 @@ if st.session_state.tool is not None:
 
         arquivo = st.file_uploader("Selecione o PDF", type="pdf", key="compress_file")
 
-        if st.button("Comprimir PDF"):
+        st.markdown('<div class="tool-action">', unsafe_allow_html=True)
+        comprimir = st.button("Comprimir PDF")
+        st.markdown('</div>', unsafe_allow_html=True)
+
+        if comprimir:
             if not arquivo:
                 st.warning("Envie um PDF.")
             else:
-                # Compressão simples: regravar o PDF
                 reader = PdfReader(arquivo)
                 writer = PdfWriter()
 
@@ -519,7 +570,11 @@ if st.session_state.tool is not None:
             key="imgpdf_files"
         )
 
-        if st.button("Converter em PDF"):
+        st.markdown('<div class="tool-action">', unsafe_allow_html=True)
+        converter = st.button("Converter em PDF")
+        st.markdown('</div>', unsafe_allow_html=True)
+
+        if converter:
             if not imagens:
                 st.warning("Envie pelo menos uma imagem.")
             else:
