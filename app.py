@@ -579,8 +579,47 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # =====================================================
-# STATE
+# MENUS
 # =====================================================
+
+MAIN_TOOLS = {
+    "unlock": "🔓 Remover senha",
+    "merge": "📎 Juntar PDFs",
+    "split": "✂️ Dividir PDF",
+    "reorganize": "🗂️ Reorganizar PDF",
+    "compress": "🗜️ Comprimir PDF",
+}
+
+CONVERSION_TOOLS = {
+    "imgpdf": "🖼️ JPG para PDF",
+    "pdfjpg": "🖼️ PDF para JPG",
+    "pdfword": "📄 PDF para Word",
+    "wordpdf": "📄 Word para PDF",
+}
+
+DESCRIPTIONS = {
+    "unlock": "Remova a senha de arquivos protegidos",
+    "merge": "Combine vários PDFs em um único arquivo",
+    "split": "Separe ou reorganize páginas de um PDF",
+    "reorganize": "Reordene, exclua ou adicione páginas",
+    "compress": "Reduza o tamanho do arquivo",
+    "imgpdf": "Converta imagens JPG/PNG em PDF",
+    "pdfjpg": "Transforme páginas do PDF em JPG",
+    "pdfword": "Converta texto do PDF em Word",
+    "wordpdf": "Converta DOCX em PDF simples",
+}
+
+BANNERS = {
+    "unlock": ("🔓 Remover senha de PDF", "Envie um ou mais PDFs protegidos, digite a senha e baixe o resultado."),
+    "merge": ("📎 Juntar PDFs", "Envie vários PDFs, arraste as páginas no menu lateral e acompanhe o preview no centro."),
+    "split": ("✂️ Dividir PDF", "Escolha um PDF, reorganize ou exclua páginas pelo menu lateral e use a divisão clássica se quiser."),
+    "reorganize": ("🗂️ Reorganizar PDF", "Arraste páginas para reordenar, exclua o que não quer e adicione páginas de PDFs extras."),
+    "compress": ("🗜️ Comprimir PDF", "Reduza o tamanho de um ou mais PDFs."),
+    "imgpdf": ("🖼️ JPG para PDF", "Envie várias imagens e gere um único PDF."),
+    "pdfjpg": ("🖼️ PDF para JPG", "Converta as páginas do PDF em imagens JPG."),
+    "pdfword": ("📄 PDF para Word", "Extraia o texto do PDF e gere um arquivo .docx."),
+    "wordpdf": ("📄 Word para PDF", "Converta um .docx em PDF simples, com foco em texto."),
+}
 
 if "tool" not in st.session_state:
     st.session_state.tool = None
@@ -607,7 +646,7 @@ with top_cols[-1]:
                 st.session_state.tool = key
                 st.rerun()
 
-st.markdown('</div>', unsafe_allow_html=True)
+st.markdown("</div>", unsafe_allow_html=True)
 
 # =====================================================
 # HOME
@@ -664,16 +703,8 @@ if st.session_state.tool is not None:
 
     st.markdown('<div class="tool-panel">', unsafe_allow_html=True)
 
-    # -----------------------------
-    # REMOVER SENHA
-    # -----------------------------
     if st.session_state.tool == "unlock":
-        arquivos = st.file_uploader(
-            "Envie os PDFs",
-            type=["pdf"],
-            accept_multiple_files=True,
-            key="unlock_files"
-        )
+        arquivos = st.file_uploader("Envie os PDFs", type=["pdf"], accept_multiple_files=True, key="unlock_files")
         senha = st.text_input("Digite a senha", type="password")
 
         button_cols = st.columns([1, 1, 1])
@@ -689,12 +720,7 @@ if st.session_state.tool is not None:
                 try:
                     if len(arquivos) == 1:
                         unlocked = unlock_pdf(arquivos[0].getvalue(), senha)
-                        st.download_button(
-                            "Baixar PDF",
-                            unlocked,
-                            arquivos[0].name,
-                            key="download_unlock_single"
-                        )
+                        st.download_button("Baixar PDF", unlocked, arquivos[0].name, key="download_unlock_single")
                     else:
                         zip_buffer = io.BytesIO()
                         with zipfile.ZipFile(zip_buffer, "w") as zip_file:
@@ -702,25 +728,12 @@ if st.session_state.tool is not None:
                                 unlocked = unlock_pdf(arquivo.getvalue(), senha)
                                 zip_file.writestr(arquivo.name, unlocked)
 
-                        st.download_button(
-                            "Baixar todos",
-                            zip_buffer.getvalue(),
-                            "pdfs_desbloqueados.zip",
-                            key="download_unlock_all"
-                        )
+                        st.download_button("Baixar todos", zip_buffer.getvalue(), "pdfs_desbloqueados.zip", key="download_unlock_all")
                 except Exception as e:
                     st.error(str(e))
 
-    # -----------------------------
-    # JUNTAR PDFs
-    # -----------------------------
     elif st.session_state.tool == "merge":
-        arquivos = st.file_uploader(
-            "Selecione os PDFs",
-            type=["pdf"],
-            accept_multiple_files=True,
-            key="merge_files"
-        )
+        arquivos = st.file_uploader("Selecione os PDFs", type=["pdf"], accept_multiple_files=True, key="merge_files")
 
         file_bytes_map = {}
         if arquivos:
@@ -740,7 +753,6 @@ if st.session_state.tool is not None:
             sorted_labels = sort_items(labels, direction="horizontal", key="merge_sort_center")
             st.session_state.merge_editor_df = apply_drag_order(st.session_state.merge_editor_df, sorted_labels)
 
-            st.sidebar.write("### Incluir / excluir páginas")
             edited_df = st.sidebar.data_editor(
                 st.session_state.merge_editor_df,
                 use_container_width=True,
@@ -773,23 +785,10 @@ if st.session_state.tool is not None:
                     st.warning("Selecione pelo menos uma página.")
                 else:
                     merged = merge_pdfs_from_plan(st.session_state.merge_editor_df, file_bytes_map)
-                    st.download_button(
-                        "Baixar PDF unido",
-                        merged,
-                        "pdf_unido.pdf",
-                        key="download_merge"
-                    )
+                    st.download_button("Baixar PDF unido", merged, "pdf_unido.pdf", key="download_merge")
 
-    # -----------------------------
-    # DIVIDIR PDF
-    # -----------------------------
     elif st.session_state.tool == "split":
-        arquivo = st.file_uploader(
-            "Selecione o PDF",
-            type=["pdf"],
-            accept_multiple_files=False,
-            key="split_file"
-        )
+        arquivo = st.file_uploader("Selecione o PDF", type=["pdf"], accept_multiple_files=False, key="split_file")
 
         if arquivo:
             file_bytes = arquivo.getvalue()
@@ -831,12 +830,7 @@ if st.session_state.tool is not None:
 
             st.markdown("### Divisão clássica")
             if paginas > 1:
-                pagina = st.number_input(
-                    "Dividir após página",
-                    min_value=1,
-                    max_value=paginas - 1,
-                    value=1
-                )
+                pagina = st.number_input("Dividir após página", min_value=1, max_value=paginas - 1, value=1)
 
                 c1, c2 = st.columns(2)
                 with c1:
@@ -846,18 +840,8 @@ if st.session_state.tool is not None:
 
                 if dividir:
                     parte1, parte2 = split_pdf(file_bytes, pagina)
-                    st.download_button(
-                        "Baixar parte 1",
-                        parte1,
-                        with_suffix(arquivo.name, "_parte1", ".pdf"),
-                        key="download_split_1"
-                    )
-                    st.download_button(
-                        "Baixar parte 2",
-                        parte2,
-                        with_suffix(arquivo.name, "_parte2", ".pdf"),
-                        key="download_split_2"
-                    )
+                    st.download_button("Baixar parte 1", parte1, with_suffix(arquivo.name, "_parte1", ".pdf"), key="download_split_1")
+                    st.download_button("Baixar parte 2", parte2, with_suffix(arquivo.name, "_parte2", ".pdf"), key="download_split_2")
 
                 if gerar_reorganizado:
                     selected = st.session_state.split_editor_df
@@ -865,29 +849,11 @@ if st.session_state.tool is not None:
                         st.warning("Selecione pelo menos uma página.")
                     else:
                         rebuilt = rebuild_pdf_from_plan(st.session_state.split_editor_df, file_map)
-                        st.download_button(
-                            "Baixar PDF reorganizado",
-                            rebuilt,
-                            with_suffix(arquivo.name, "_reorganizado", ".pdf"),
-                            key="download_split_rebuild"
-                        )
+                        st.download_button("Baixar PDF reorganizado", rebuilt, with_suffix(arquivo.name, "_reorganizado", ".pdf"), key="download_split_rebuild")
 
-    # -----------------------------
-    # REORGANIZAR PDF
-    # -----------------------------
     elif st.session_state.tool == "reorganize":
-        base_pdf = st.file_uploader(
-            "Selecione o PDF principal",
-            type=["pdf"],
-            accept_multiple_files=False,
-            key="reorg_base"
-        )
-        extra_pdfs = st.file_uploader(
-            "Selecione PDFs extras para adicionar páginas",
-            type=["pdf"],
-            accept_multiple_files=True,
-            key="reorg_extra"
-        )
+        base_pdf = st.file_uploader("Selecione o PDF principal", type=["pdf"], accept_multiple_files=False, key="reorg_base")
+        extra_pdfs = st.file_uploader("Selecione PDFs extras para adicionar páginas", type=["pdf"], accept_multiple_files=True, key="reorg_extra")
 
         extras = extra_pdfs if extra_pdfs else []
 
@@ -940,23 +906,10 @@ if st.session_state.tool is not None:
                     st.warning("Selecione pelo menos uma página.")
                 else:
                     rebuilt = rebuild_pdf_from_plan(st.session_state.reorg_editor_df, file_bytes_map)
-                    st.download_button(
-                        "Baixar PDF reorganizado",
-                        rebuilt,
-                        with_suffix(base_pdf.name, "_reorganizado", ".pdf"),
-                        key="download_reorg"
-                    )
+                    st.download_button("Baixar PDF reorganizado", rebuilt, with_suffix(base_pdf.name, "_reorganizado", ".pdf"), key="download_reorg")
 
-    # -----------------------------
-    # COMPRIMIR PDF
-    # -----------------------------
     elif st.session_state.tool == "compress":
-        arquivos = st.file_uploader(
-            "Selecione os PDFs",
-            type=["pdf"],
-            accept_multiple_files=True,
-            key="compress_files"
-        )
+        arquivos = st.file_uploader("Selecione os PDFs", type=["pdf"], accept_multiple_files=True, key="compress_files")
 
         button_cols = st.columns([1, 1, 1])
         with button_cols[1]:
@@ -968,12 +921,7 @@ if st.session_state.tool is not None:
             else:
                 if len(arquivos) == 1:
                     compressed = compress_pdf_bytes(arquivos[0].getvalue())
-                    st.download_button(
-                        "Baixar PDF",
-                        compressed,
-                        arquivos[0].name,
-                        key="download_compress_single"
-                    )
+                    st.download_button("Baixar PDF", compressed, arquivos[0].name, key="download_compress_single")
                 else:
                     zip_buffer = io.BytesIO()
                     with zipfile.ZipFile(zip_buffer, "w") as zip_file:
@@ -981,23 +929,10 @@ if st.session_state.tool is not None:
                             compressed = compress_pdf_bytes(arquivo.getvalue())
                             zip_file.writestr(arquivo.name, compressed)
 
-                    st.download_button(
-                        "Baixar PDFs comprimidos",
-                        zip_buffer.getvalue(),
-                        "pdfs_comprimidos.zip",
-                        key="download_compress"
-                    )
+                    st.download_button("Baixar PDFs comprimidos", zip_buffer.getvalue(), "pdfs_comprimidos.zip", key="download_compress")
 
-    # -----------------------------
-    # JPG PARA PDF
-    # -----------------------------
     elif st.session_state.tool == "imgpdf":
-        imagens = st.file_uploader(
-            "Envie imagens",
-            type=["png", "jpg", "jpeg"],
-            accept_multiple_files=True,
-            key="imgpdf_files"
-        )
+        imagens = st.file_uploader("Envie imagens", type=["png", "jpg", "jpeg"], accept_multiple_files=True, key="imgpdf_files")
 
         button_cols = st.columns([1, 1, 1])
         with button_cols[1]:
@@ -1009,23 +944,10 @@ if st.session_state.tool is not None:
             else:
                 pdf_bytes = images_to_pdf(imagens)
                 output_name = with_ext(imagens[0].name, ".pdf") if len(imagens) == 1 else "imagens_convertidas.pdf"
-                st.download_button(
-                    "Baixar PDF",
-                    pdf_bytes,
-                    output_name,
-                    key="download_imgpdf"
-                )
+                st.download_button("Baixar PDF", pdf_bytes, output_name, key="download_imgpdf")
 
-    # -----------------------------
-    # PDF PARA JPG
-    # -----------------------------
     elif st.session_state.tool == "pdfjpg":
-        arquivo = st.file_uploader(
-            "Selecione o PDF",
-            type=["pdf"],
-            accept_multiple_files=False,
-            key="pdfjpg_file"
-        )
+        arquivo = st.file_uploader("Selecione o PDF", type=["pdf"], accept_multiple_files=False, key="pdfjpg_file")
 
         button_cols = st.columns([1, 1, 1])
         with button_cols[1]:
@@ -1037,25 +959,12 @@ if st.session_state.tool is not None:
             else:
                 try:
                     zip_bytes = pdf_to_jpg_zip(arquivo.getvalue())
-                    st.download_button(
-                        "Baixar JPGs em ZIP",
-                        zip_bytes,
-                        with_suffix(arquivo.name, "_jpg", ".zip"),
-                        key="download_pdfjpg"
-                    )
+                    st.download_button("Baixar JPGs em ZIP", zip_bytes, with_suffix(arquivo.name, "_jpg", ".zip"), key="download_pdfjpg")
                 except Exception as e:
                     st.error(f"Não foi possível converter este PDF: {e}")
 
-    # -----------------------------
-    # PDF PARA WORD
-    # -----------------------------
     elif st.session_state.tool == "pdfword":
-        arquivo = st.file_uploader(
-            "Selecione o PDF",
-            type=["pdf"],
-            accept_multiple_files=False,
-            key="pdfword_file"
-        )
+        arquivo = st.file_uploader("Selecione o PDF", type=["pdf"], accept_multiple_files=False, key="pdfword_file")
 
         button_cols = st.columns([1, 1, 1])
         with button_cols[1]:
@@ -1067,25 +976,12 @@ if st.session_state.tool is not None:
             else:
                 try:
                     docx_bytes = pdf_text_to_docx(arquivo.getvalue())
-                    st.download_button(
-                        "Baixar Word (.docx)",
-                        docx_bytes,
-                        with_ext(arquivo.name, ".docx"),
-                        key="download_pdfword"
-                    )
+                    st.download_button("Baixar Word (.docx)", docx_bytes, with_ext(arquivo.name, ".docx"), key="download_pdfword")
                 except Exception as e:
                     st.error(f"Não foi possível converter este PDF: {e}")
 
-    # -----------------------------
-    # WORD PARA PDF
-    # -----------------------------
     elif st.session_state.tool == "wordpdf":
-        arquivo = st.file_uploader(
-            "Selecione o arquivo Word (.docx)",
-            type=["docx"],
-            accept_multiple_files=False,
-            key="wordpdf_file"
-        )
+        arquivo = st.file_uploader("Selecione o arquivo Word (.docx)", type=["docx"], accept_multiple_files=False, key="wordpdf_file")
 
         button_cols = st.columns([1, 1, 1])
         with button_cols[1]:
@@ -1097,12 +993,7 @@ if st.session_state.tool is not None:
             else:
                 try:
                     pdf_bytes = docx_to_simple_pdf(arquivo.getvalue())
-                    st.download_button(
-                        "Baixar PDF",
-                        pdf_bytes,
-                        with_ext(arquivo.name, ".pdf"),
-                        key="download_wordpdf"
-                    )
+                    st.download_button("Baixar PDF", pdf_bytes, with_ext(arquivo.name, ".pdf"), key="download_wordpdf")
                 except Exception as e:
                     st.error(f"Não foi possível converter este Word: {e}")
 
