@@ -44,3 +44,4 @@ if st.button("Remover senha"):
         else:
 
             st.error("Esse PDF não possui senha.")
+
