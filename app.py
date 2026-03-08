@@ -843,16 +843,20 @@ header, [data-testid="stHeader"] {
 }
 
 .home-card-btn .stButton > button {
-    min-height: 185px !important;
+    min-height: 210px !important;
+    max-height: 210px !important;
     border-radius: 20px !important;
     background: #fff !important;
     color: var(--text) !important;
     border: 1px solid var(--line) !important;
     box-shadow: var(--shadow-soft) !important;
-    padding: 18px !important;
+    padding: 20px !important;
     text-align: left !important;
     white-space: pre-wrap !important;
-    line-height: 1.5 !important;
+    line-height: 1.45 !important;
+    display: flex !important;
+    align-items: flex-start !important;
+    justify-content: flex-start !important;
 }
 
 .home-card-btn .stButton > button:hover {
@@ -898,7 +902,8 @@ header, [data-testid="stHeader"] {
     }
 
     .home-card-btn .stButton > button {
-        min-height: 205px !important;
+        min-height: 220px !important;
+        max-height: 220px !important;
     }
 }
 </style>
@@ -964,7 +969,7 @@ if st.session_state.tool is None:
     st.markdown(
         """
         <div class="big-home-upload">
-            <div class="big-home-upload-title">Envie um PDF e comece agora</div>
+            <div class="big-home-upload-title">Envie seus PDFs e comece agora</div>
             <div class="big-home-upload-subtitle">Depois você escolhe a ferramenta que deseja usar</div>
         </div>
         """,
@@ -972,9 +977,9 @@ if st.session_state.tool is None:
     )
 
     st.file_uploader(
-        "Envie um PDF",
+        "Envie PDFs",
         type=["pdf"],
-        accept_multiple_files=False,
+        accept_multiple_files=True,
         key="home_big_upload",
         label_visibility="collapsed",
     )
