@@ -14,7 +14,25 @@ st.markdown("""
 <style>
 
 body{
-background:#f6f8fc;
+background:#f3f4f6;
+}
+
+.topmenu{
+display:flex;
+justify-content:center;
+gap:15px;
+margin-bottom:20px;
+flex-wrap:wrap;
+}
+
+.topmenu button{
+background:#e5322d;
+color:white;
+border:none;
+padding:8px 14px;
+border-radius:8px;
+cursor:pointer;
+font-weight:600;
 }
 
 .center{
@@ -25,23 +43,25 @@ text-align:center;
 display:grid;
 grid-template-columns:repeat(3,1fr);
 gap:20px;
-max-width:1000px;
+max-width:900px;
 margin:auto;
+margin-top:40px;
 }
 
 .tool-card{
 background:white;
-border:1px solid #e5e7eb;
-border-radius:18px;
+border-radius:16px;
 padding:25px;
+border:1px solid #e5e7eb;
+box-shadow:0 5px 15px rgba(0,0,0,0.05);
 text-align:center;
-box-shadow:0 8px 20px rgba(0,0,0,0.05);
 }
 
 .tool-title{
-font-weight:700;
 font-size:18px;
+font-weight:700;
 margin-bottom:5px;
+color:#111827;
 }
 
 .tool-desc{
@@ -58,8 +78,8 @@ text-align:center;
 background:#e5322d;
 color:white;
 border:none;
-padding:10px 20px;
-border-radius:10px;
+padding:10px 18px;
+border-radius:8px;
 font-weight:600;
 }
 
@@ -107,32 +127,53 @@ st.markdown("""
 # ESTADO
 # =====================================================
 
+TOOLS = {
+"unlock":"🔓 Remover senha",
+"merge":"📎 Juntar PDFs",
+"split":"✂️ Dividir PDF",
+"compress":"🗜️ Comprimir PDF",
+"pdfimg":"🖼️ PDF para imagem",
+"imgpdf":"🖼️ Imagem para PDF"
+}
+
 if "tool" not in st.session_state:
     st.session_state.tool = None
 
 # =====================================================
-# TELA INICIAL (BALÕES)
+# MENU TOPO
+# =====================================================
+
+cols = st.columns(len(TOOLS))
+
+for i,(key,name) in enumerate(TOOLS.items()):
+
+    if cols[i].button(name):
+        st.session_state.tool = key
+        st.rerun()
+
+# =====================================================
+# BALÕES INICIAIS
 # =====================================================
 
 if st.session_state.tool is None:
 
     st.markdown('<div class="tool-grid">',unsafe_allow_html=True)
 
-    tools = {
-    "unlock":("🔓 Remover senha","Remova a senha de arquivos protegidos"),
-    "merge":("📎 Juntar PDFs","Combine vários PDFs em um único arquivo"),
-    "split":("✂️ Dividir PDF","Separe páginas de um PDF"),
-    "compress":("🗜️ Comprimir PDF","Reduza o tamanho do arquivo"),
-    "pdfimg":("🖼️ PDF para imagem","Transforme páginas em imagens"),
-    "imgpdf":("🖼️ Imagem para PDF","Crie PDF a partir de imagens")
+    descriptions = {
+    "unlock":"Remova a senha de arquivos protegidos",
+    "merge":"Combine vários PDFs em um único arquivo",
+    "split":"Separe páginas de um PDF",
+    "compress":"Reduza o tamanho do arquivo",
+    "pdfimg":"Transforme páginas em imagens",
+    "imgpdf":"Crie PDF a partir de imagens"
     }
 
-    for key,(title,desc) in tools.items():
+    for key,name in TOOLS.items():
 
         st.markdown(f"""
         <div class="tool-card">
-        <div class="tool-title">{title}</div>
-        <div class="tool-desc">{desc}</div>
+        <div class="tool-title">{name}</div>
+        <div class="tool-desc">{descriptions[key]}</div>
         </div>
         """,unsafe_allow_html=True)
 
@@ -153,7 +194,7 @@ else:
         st.rerun()
 
 # =====================================================
-# FUNÇÕES
+# FUNÇÃO
 # =====================================================
 
 def unlock_pdf(pdf_bytes,password):
@@ -288,47 +329,6 @@ elif st.session_state.tool=="split":
 
             st.download_button("Baixar parte 1",buffer1.getvalue(),"parte1.pdf")
             st.download_button("Baixar parte 2",buffer2.getvalue(),"parte2.pdf")
-
-# =====================================================
-# COMPRIMIR
-# =====================================================
-
-elif st.session_state.tool=="compress":
-
-    st.header("🗜️ Comprimir PDF")
-
-    arquivo = st.file_uploader("Selecione o PDF", type="pdf")
-
-    if st.button("Comprimir PDF"):
-
-        reader = PdfReader(arquivo)
-        writer = PdfWriter()
-
-        for page in reader.pages:
-            writer.add_page(page)
-
-        buffer = io.BytesIO()
-        writer.write(buffer)
-
-        st.download_button(
-            "Baixar PDF comprimido",
-            buffer.getvalue(),
-            "pdf_comprimido.pdf"
-        )
-
-# =====================================================
-# PDF PARA IMAGEM
-# =====================================================
-
-elif st.session_state.tool=="pdfimg":
-
-    st.header("🖼️ PDF para imagem")
-
-    arquivo = st.file_uploader("Selecione o PDF", type="pdf")
-
-    if arquivo:
-        reader = PdfReader(arquivo)
-        st.write("Total de páginas:",len(reader.pages))
 
 # =====================================================
 # IMAGEM PARA PDF
