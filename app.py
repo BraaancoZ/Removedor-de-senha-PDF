@@ -1,86 +1,109 @@
 import streamlit as st
 from pypdf import PdfReader, PdfWriter
 from PIL import Image
+from pdf2image import convert_from_bytes
 import io
 import zipfile
+import time
 
 st.set_page_config(page_title="Ferramentas PDF", page_icon="📄", layout="wide")
 
-# ==============================
-# CSS / ESTILO
-# ==============================
+# =============================
+# CSS VISUAL MODERNO
+# =============================
 
 st.markdown("""
 <style>
 
 body {
-background: linear-gradient(135deg,#0f2027,#203a43,#2c5364);
+background: linear-gradient(135deg,#141E30,#243B55);
 }
 
-h1, h2, h3 {
-color: white;
+.main-container{
+max-width:700px;
+margin:auto;
+text-align:center;
 }
 
-.stButton>button {
-background-color:#00c6ff;
+h1,h2,h3{
+text-align:center;
 color:white;
-border-radius:10px;
+}
+
+.stFileUploader{
+max-width:600px;
+margin:auto;
+}
+
+.stTextInput{
+max-width:400px;
+margin:auto;
+}
+
+.stButton>button{
+background:#4CAF50;
+color:white;
+border-radius:8px;
 padding:10px 20px;
 transition:0.3s;
 }
 
-.stButton>button:hover {
-background-color:#0072ff;
+.stButton>button:hover{
 transform:scale(1.05);
+background:#45a049;
 }
 
 </style>
 """, unsafe_allow_html=True)
 
-# ==============================
+# =============================
 # TÍTULO
-# ==============================
+# =============================
 
 st.title("📄 Ferramentas PDF Online")
-st.write("Ferramentas gratuitas para trabalhar com PDFs.")
 
-# ==============================
+st.markdown("Ferramentas simples para **editar PDFs diretamente no navegador**.")
+
+# =============================
 # MENU
-# ==============================
+# =============================
 
 menu = st.sidebar.radio(
-    "Escolha uma ferramenta",
+    "Ferramentas",
     [
         "🔓 Remover senha",
         "📎 Juntar PDFs",
         "✂️ Dividir PDF",
         "🗜️ Comprimir PDF",
-        "🖼️ PDF para Imagem",
+        "🖼️ PDF para imagem",
         "📄 Imagem para PDF"
     ]
 )
 
-# ==============================
+# =============================
 # REMOVER SENHA
-# ==============================
+# =============================
 
 if menu == "🔓 Remover senha":
 
-    st.header("🔓 Remover senha de PDF")
+    st.header("Remover senha de PDF")
 
     arquivos = st.file_uploader(
-        "Arraste os PDFs protegidos",
+        "Arraste e solte os PDFs aqui",
         type="pdf",
-        accept_multiple_files=True
+        accept_multiple_files=True,
+        label_visibility="visible"
     )
 
-    senha = st.text_input("Digite a senha", type="password")
+    senha = st.text_input("Digite a senha do PDF", type="password")
 
     if st.button("Desbloquear PDFs"):
 
+        progress = st.progress(0)
+
         arquivos_processados = []
 
-        for arquivo in arquivos:
+        for i,arquivo in enumerate(arquivos):
 
             reader = PdfReader(arquivo)
 
@@ -95,79 +118,93 @@ if menu == "🔓 Remover senha":
             buffer = io.BytesIO()
             writer.write(buffer)
 
-            arquivos_processados.append((arquivo.name, buffer.getvalue()))
+            arquivos_processados.append((arquivo.name,buffer.getvalue()))
 
-            st.success(f"{arquivo.name} desbloqueado")
+            progress.progress((i+1)/len(arquivos))
+            time.sleep(0.2)
+
+        st.success("PDFs desbloqueados com sucesso!")
 
         # DOWNLOAD INDIVIDUAL
 
-        for nome, data in arquivos_processados:
+        for nome,data in arquivos_processados:
 
             st.download_button(
                 f"Baixar {nome}",
                 data,
-                nome,
-                mime="application/pdf"
+                nome
             )
 
-        # DOWNLOAD ZIP
+        # ZIP
 
         zip_buffer = io.BytesIO()
 
-        with zipfile.ZipFile(zip_buffer, "w") as zip_file:
+        with zipfile.ZipFile(zip_buffer,"w") as zip_file:
 
-            for nome, data in arquivos_processados:
-                zip_file.writestr(nome, data)
+            for nome,data in arquivos_processados:
+                zip_file.writestr(nome,data)
 
         st.download_button(
-            "📦 Baixar TODOS em ZIP",
+            "Baixar todos em ZIP",
             zip_buffer.getvalue(),
             "pdfs_desbloqueados.zip"
         )
 
-# ==============================
-# JUNTAR PDFs
-# ==============================
+# =============================
+# JUNTAR PDF
+# =============================
 
 elif menu == "📎 Juntar PDFs":
 
-    st.header("📎 Juntar PDFs")
+    st.header("Juntar PDFs")
 
     arquivos = st.file_uploader(
-        "Selecione os PDFs",
+        "Selecionar arquivos PDF",
         type="pdf",
         accept_multiple_files=True
     )
 
-    if st.button("Juntar"):
+    if arquivos:
 
-        writer = PdfWriter()
-
-        for arquivo in arquivos:
-
-            reader = PdfReader(arquivo)
-
-            for page in reader.pages:
-                writer.add_page(page)
-
-        buffer = io.BytesIO()
-        writer.write(buffer)
-
-        st.download_button(
-            "Baixar PDF unido",
-            buffer.getvalue(),
-            "pdf_unido.pdf"
+        ordem = st.multiselect(
+            "Arraste para definir a ordem",
+            [a.name for a in arquivos],
+            default=[a.name for a in arquivos]
         )
 
-# ==============================
+        if st.button("Juntar PDFs"):
+
+            writer = PdfWriter()
+
+            for nome in ordem:
+
+                for arq in arquivos:
+
+                    if arq.name == nome:
+
+                        reader = PdfReader(arq)
+
+                        for page in reader.pages:
+                            writer.add_page(page)
+
+            buffer = io.BytesIO()
+            writer.write(buffer)
+
+            st.download_button(
+                "Baixar PDF unido",
+                buffer.getvalue(),
+                "pdf_unido.pdf"
+            )
+
+# =============================
 # DIVIDIR PDF
-# ==============================
+# =============================
 
 elif menu == "✂️ Dividir PDF":
 
-    st.header("✂️ Dividir PDF")
+    st.header("Dividir PDF")
 
-    arquivo = st.file_uploader("Envie o PDF", type="pdf")
+    arquivo = st.file_uploader("Selecionar PDF", type="pdf")
 
     if arquivo:
 
@@ -189,7 +226,7 @@ elif menu == "✂️ Dividir PDF":
             for i in range(pagina):
                 writer1.add_page(reader.pages[i])
 
-            for i in range(pagina, paginas):
+            for i in range(pagina,paginas):
                 writer2.add_page(reader.pages[i])
 
             buffer1 = io.BytesIO()
@@ -198,26 +235,28 @@ elif menu == "✂️ Dividir PDF":
             writer1.write(buffer1)
             writer2.write(buffer2)
 
-            st.download_button("Parte 1", buffer1.getvalue(), "parte1.pdf")
-            st.download_button("Parte 2", buffer2.getvalue(), "parte2.pdf")
+            st.download_button("Baixar parte 1",buffer1.getvalue(),"parte1.pdf")
+            st.download_button("Baixar parte 2",buffer2.getvalue(),"parte2.pdf")
 
-# ==============================
+# =============================
 # COMPRIMIR PDF
-# ==============================
+# =============================
 
 elif menu == "🗜️ Comprimir PDF":
 
-    st.header("🗜️ Comprimir PDF")
+    st.header("Comprimir PDF")
 
-    arquivo = st.file_uploader("Envie o PDF", type="pdf")
+    arquivo = st.file_uploader("Selecionar PDF", type="pdf")
 
-    if st.button("Comprimir"):
+    if arquivo:
 
         reader = PdfReader(arquivo)
 
         writer = PdfWriter()
 
         for page in reader.pages:
+
+            page.compress_content_streams()
             writer.add_page(page)
 
         buffer = io.BytesIO()
@@ -229,36 +268,36 @@ elif menu == "🗜️ Comprimir PDF":
             "pdf_comprimido.pdf"
         )
 
-# ==============================
+# =============================
 # PDF PARA IMAGEM
-# ==============================
+# =============================
 
-elif menu == "🖼️ PDF para Imagem":
+elif menu == "🖼️ PDF para imagem":
 
-    st.header("PDF para imagem")
+    st.header("Converter PDF para imagem")
 
-    arquivo = st.file_uploader("Envie o PDF", type="pdf")
+    arquivo = st.file_uploader("Selecionar PDF", type="pdf")
 
     if arquivo:
 
-        reader = PdfReader(arquivo)
+        imagens = convert_from_bytes(arquivo.read())
 
-        st.write("Extração de páginas como imagem.")
+        st.write("Preview das páginas")
 
-        for i, page in enumerate(reader.pages):
+        for img in imagens:
 
-            st.write(f"Página {i+1}")
+            st.image(img,width=300)
 
-# ==============================
+# =============================
 # IMAGEM PARA PDF
-# ==============================
+# =============================
 
 elif menu == "📄 Imagem para PDF":
 
-    st.header("Imagem para PDF")
+    st.header("Converter imagem para PDF")
 
     imagens = st.file_uploader(
-        "Envie imagens",
+        "Selecionar imagens",
         type=["png","jpg","jpeg"],
         accept_multiple_files=True
     )
@@ -274,13 +313,13 @@ elif menu == "📄 Imagem para PDF":
 
         buffer = io.BytesIO()
 
-        lista[0].save(buffer, save_all=True, append_images=lista[1:], format="PDF")
+        lista[0].save(buffer,save_all=True,append_images=lista[1:],format="PDF")
 
         st.download_button(
             "Baixar PDF",
             buffer.getvalue(),
-            "imagens.pdf"
+            "imagens_convertidas.pdf"
         )
 
 st.markdown("---")
-st.caption("Ferramentas PDF online gratuitas")
+st.caption("Ferramentas PDF gratuitas online")
