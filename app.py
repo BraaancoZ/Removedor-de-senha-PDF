@@ -12,56 +12,54 @@ st.set_page_config(
 )
 
 # =====================================================
-# CSS - APENAS MODO LIGHT
+# CSS - LIGHT MODE
 # =====================================================
 
 st.markdown("""
 <style>
-/* Fundo geral */
 html, body, [data-testid="stAppViewContainer"] {
     background: #f8fafc !important;
     color: #0f172a !important;
 }
 
-/* Remove efeitos escuros e barra superior */
-header {
+header, [data-testid="stHeader"] {
     background: transparent !important;
 }
 
-[data-testid="stHeader"] {
-    background: transparent !important;
+p, label, div, span, h1, h2, h3 {
+    color: #0f172a !important;
 }
 
-/* Texto padrão */
-p, label, div, span {
-    color: #0f172a;
+/* Esconde sidebar recolhida */
+[data-testid="collapsedControl"] {
+    display: none !important;
 }
 
-/* Título */
+/* Hero */
 .hero {
     text-align: center;
-    margin-top: 16px;
-    margin-bottom: 26px;
+    margin-top: 14px;
+    margin-bottom: 24px;
 }
 
 .hero h1 {
-    font-size: 2.5rem;
+    font-size: 2.55rem;
     margin-bottom: 6px;
-    color: #0f172a;
+    color: #0f172a !important;
 }
 
 .hero p {
-    color: #64748b;
+    color: #475569 !important;
     font-size: 1rem;
 }
 
 /* Menu superior */
 .top-menu-wrap {
     max-width: 1180px;
-    margin: 0 auto 22px auto;
+    margin: 0 auto 18px auto;
 }
 
-/* Cards iniciais */
+/* Cards da home */
 .cards-wrapper {
     max-width: 980px;
     margin: 0 auto 28px auto;
@@ -69,11 +67,11 @@ p, label, div, span {
 
 .tool-card {
     background: #ffffff;
-    border: 1px solid #dbeafe;
+    border: 1px solid #cfe3ff;
     border-radius: 18px;
     padding: 22px 18px;
     text-align: center;
-    box-shadow: 0 10px 24px rgba(59, 130, 246, 0.08);
+    box-shadow: 0 10px 24px rgba(96, 165, 250, 0.10);
     min-height: 178px;
     display: flex;
     flex-direction: column;
@@ -81,51 +79,65 @@ p, label, div, span {
 }
 
 .tool-title {
-    font-size: 1.04rem;
+    font-size: 1.05rem;
     font-weight: 700;
-    color: #0f172a;
+    color: #0f172a !important;
     margin-bottom: 8px;
 }
 
 .tool-desc {
-    font-size: 0.93rem;
-    color: #64748b;
-    line-height: 1.4;
+    font-size: 0.94rem;
+    color: #334155 !important;
+    line-height: 1.45;
     margin-bottom: 18px;
 }
 
 /* Painel da ferramenta */
 .tool-panel {
-    max-width: 900px;
+    max-width: 920px;
     margin: 0 auto;
+}
+
+/* Cabeçalho da ferramenta dentro do balão */
+.tool-header-box {
     background: #ffffff;
-    border: 1px solid #dbeafe;
+    border: 1px solid #cfe3ff;
+    border-radius: 20px;
+    padding: 20px 24px;
+    box-shadow: 0 10px 24px rgba(96, 165, 250, 0.10);
+    margin-bottom: 18px;
+    text-align: center;
+}
+
+.tool-header-box h2 {
+    margin: 0;
+    font-size: 2rem;
+    color: #0f172a !important;
+}
+
+.tool-form-box {
+    background: #ffffff;
+    border: 1px solid #cfe3ff;
     border-radius: 20px;
     padding: 28px;
-    box-shadow: 0 10px 24px rgba(59, 130, 246, 0.08);
+    box-shadow: 0 10px 24px rgba(96, 165, 250, 0.10);
 }
 
-.tool-panel h2 {
-    text-align: center;
-    color: #0f172a;
-    margin-bottom: 20px;
-}
-
-/* Centralização dos inputs da ferramenta */
+/* Inputs */
 [data-testid="stFileUploader"],
 .stTextInput,
 .stNumberInput {
-    max-width: 620px;
+    max-width: 640px;
     margin-left: auto !important;
     margin-right: auto !important;
 }
 
-/* Labels centralizadas */
 label {
     text-align: center !important;
     display: block !important;
     width: 100% !important;
     color: #0f172a !important;
+    font-weight: 500 !important;
 }
 
 /* Upload */
@@ -146,15 +158,15 @@ label {
     position: absolute;
     inset: 0;
     text-align: center;
-    color: #334155;
-    font-weight: 500;
+    color: #1e293b !important;
+    font-weight: 600;
 }
 
 /* Botão do uploader */
 [data-testid="stFileUploader"] section button {
     font-size: 0 !important;
     background: #eff6ff !important;
-    color: #1d4ed8 !important;
+    color: #2563eb !important;
     border: 1px solid #bfdbfe !important;
     border-radius: 10px !important;
 }
@@ -162,8 +174,8 @@ label {
 [data-testid="stFileUploader"] section button::after {
     content: "Selecionar arquivos";
     font-size: 14px !important;
-    color: #1d4ed8 !important;
-    font-weight: 600;
+    color: #2563eb !important;
+    font-weight: 700;
 }
 
 /* Botões gerais */
@@ -172,38 +184,38 @@ label {
 }
 
 .stButton > button {
-    background: #3b82f6 !important;
+    background: #60a5fa !important;
     color: white !important;
     border: none !important;
     border-radius: 10px !important;
     padding: 10px 20px !important;
-    font-weight: 600 !important;
-    box-shadow: 0 8px 18px rgba(59, 130, 246, 0.18) !important;
+    font-weight: 700 !important;
+    box-shadow: 0 8px 18px rgba(96, 165, 250, 0.22) !important;
 }
 
 .stButton > button:hover {
-    background: #2563eb !important;
+    background: #3b82f6 !important;
     color: white !important;
 }
 
-/* Botões de download */
+/* Download buttons */
 [data-testid="stDownloadButton"] {
     text-align: center !important;
 }
 
 [data-testid="stDownloadButton"] > button {
-    background: #2563eb !important;
+    background: #3b82f6 !important;
     color: white !important;
     border: none !important;
     border-radius: 10px !important;
     padding: 10px 20px !important;
-    font-weight: 600 !important;
+    font-weight: 700 !important;
 }
 
 /* Rodapé */
 .footer-note {
     text-align: center;
-    color: #64748b;
+    color: #475569 !important;
     margin-top: 28px;
     margin-bottom: 8px;
     font-size: 0.96rem;
@@ -261,7 +273,7 @@ for i, (key, name) in enumerate(TOOLS.items()):
 st.markdown('</div>', unsafe_allow_html=True)
 
 # =====================================================
-# TELA INICIAL
+# HOME
 # =====================================================
 
 if st.session_state.tool is None:
@@ -380,7 +392,7 @@ def images_to_pdf(imagens) -> bytes:
 # =====================================================
 
 if st.session_state.tool is not None:
-    back_cols = st.columns([1, 2, 1])
+    back_cols = st.columns([1, 1, 1])
     with back_cols[1]:
         if st.button("⬅ Voltar para ferramentas"):
             st.session_state.tool = None
@@ -390,11 +402,17 @@ if st.session_state.tool is not None:
 
     # REMOVER SENHA
     if st.session_state.tool == "unlock":
-        st.markdown("<h2>🔓 Remover senha de PDF</h2>", unsafe_allow_html=True)
+        st.markdown("""
+        <div class="tool-header-box">
+            <h2>🔓 Remover senha de PDF</h2>
+        </div>
+        """, unsafe_allow_html=True)
+
+        st.markdown('<div class="tool-form-box">', unsafe_allow_html=True)
 
         arquivos = st.file_uploader(
             "Envie os PDFs",
-            type="pdf",
+            type=["pdf"],
             accept_multiple_files=True,
             key="unlock_files"
         )
@@ -434,13 +452,21 @@ if st.session_state.tool is not None:
                 except Exception as e:
                     st.error(str(e))
 
+        st.markdown('</div>', unsafe_allow_html=True)
+
     # JUNTAR PDFs
     elif st.session_state.tool == "merge":
-        st.markdown("<h2>📎 Juntar PDFs</h2>", unsafe_allow_html=True)
+        st.markdown("""
+        <div class="tool-header-box">
+            <h2>📎 Juntar PDFs</h2>
+        </div>
+        """, unsafe_allow_html=True)
+
+        st.markdown('<div class="tool-form-box">', unsafe_allow_html=True)
 
         arquivos = st.file_uploader(
             "Selecione os PDFs",
-            type="pdf",
+            type=["pdf"],
             accept_multiple_files=True,
             key="merge_files"
         )
@@ -463,11 +489,19 @@ if st.session_state.tool is not None:
                         key="download_merge"
                     )
 
+        st.markdown('</div>', unsafe_allow_html=True)
+
     # DIVIDIR PDF
     elif st.session_state.tool == "split":
-        st.markdown("<h2>✂️ Dividir PDF</h2>", unsafe_allow_html=True)
+        st.markdown("""
+        <div class="tool-header-box">
+            <h2>✂️ Dividir PDF</h2>
+        </div>
+        """, unsafe_allow_html=True)
 
-        arquivo = st.file_uploader("Selecione o PDF", type="pdf", key="split_file")
+        st.markdown('<div class="tool-form-box">', unsafe_allow_html=True)
+
+        arquivo = st.file_uploader("Selecione o PDF", type=["pdf"], key="split_file")
 
         if arquivo:
             reader = PdfReader(arquivo)
@@ -496,11 +530,19 @@ if st.session_state.tool is not None:
             else:
                 st.warning("O PDF precisa ter pelo menos 2 páginas.")
 
+        st.markdown('</div>', unsafe_allow_html=True)
+
     # COMPRIMIR PDF
     elif st.session_state.tool == "compress":
-        st.markdown("<h2>🗜️ Comprimir PDF</h2>", unsafe_allow_html=True)
+        st.markdown("""
+        <div class="tool-header-box">
+            <h2>🗜️ Comprimir PDF</h2>
+        </div>
+        """, unsafe_allow_html=True)
 
-        arquivo = st.file_uploader("Selecione o PDF", type="pdf", key="compress_file")
+        st.markdown('<div class="tool-form-box">', unsafe_allow_html=True)
+
+        arquivo = st.file_uploader("Selecione o PDF", type=["pdf"], key="compress_file")
 
         button_cols = st.columns([1, 1, 1])
         with button_cols[1]:
@@ -528,9 +570,17 @@ if st.session_state.tool is not None:
                         key="download_compress"
                     )
 
+        st.markdown('</div>', unsafe_allow_html=True)
+
     # IMAGEM PARA PDF
     elif st.session_state.tool == "imgpdf":
-        st.markdown("<h2>🖼️ Imagem para PDF</h2>", unsafe_allow_html=True)
+        st.markdown("""
+        <div class="tool-header-box">
+            <h2>🖼️ Imagem para PDF</h2>
+        </div>
+        """, unsafe_allow_html=True)
+
+        st.markdown('<div class="tool-form-box">', unsafe_allow_html=True)
 
         imagens = st.file_uploader(
             "Envie imagens",
@@ -557,6 +607,8 @@ if st.session_state.tool is not None:
                         "imagens.pdf",
                         key="download_imgpdf"
                     )
+
+        st.markdown('</div>', unsafe_allow_html=True)
 
     st.markdown('</div>', unsafe_allow_html=True)
 
