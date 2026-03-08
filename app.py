@@ -1,7 +1,7 @@
 import io
 import zipfile
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List
 
 import fitz  # PyMuPDF
 import pandas as pd
@@ -517,14 +517,16 @@ def render_clickable_preview(
 
 
 def render_home_card(key: str):
-    label_html = f"""
-    <div class="home-card-inner">
-        <div class="home-card-icon">{TOOL_ICONS[key]}</div>
-        <div class="home-card-title">{ALL_TOOLS[key]}</div>
-        <div class="home-card-desc">{DESCRIPTIONS[key]}</div>
-    </div>
-    """
-    st.markdown(label_html, unsafe_allow_html=True)
+    st.markdown(
+        f"""
+        <div class="home-card-shell">
+            <div class="home-card-icon">{TOOL_ICONS[key]}</div>
+            <div class="home-card-title">{ALL_TOOLS[key]}</div>
+            <div class="home-card-desc">{DESCRIPTIONS[key]}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
     st.markdown('<div class="home-card-btn">', unsafe_allow_html=True)
     if st.button("Abrir ferramenta", key=f"home_card_{key}"):
         set_tool(key)
@@ -851,15 +853,10 @@ header, [data-testid="stHeader"] {
     border-radius: 18px;
     box-shadow: var(--shadow);
     padding: 18px;
-    height: 100%;
-    min-height: 228px;
+    min-height: 180px;
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
-}
-
-.home-card-inner {
-    min-height: 150px;
+    justify-content: flex-start;
 }
 
 .home-card-icon {
@@ -885,10 +882,11 @@ header, [data-testid="stHeader"] {
     color: var(--muted) !important;
     line-height: 1.5;
     font-size: 0.95rem;
+    min-height: 56px;
 }
 
 .home-card-btn .stButton > button {
-    min-height: 46px !important;
+    min-height: 44px !important;
 }
 
 .footer-note {
@@ -909,10 +907,6 @@ header, [data-testid="stHeader"] {
 
     .tool-panel {
         padding: 16px 12px 20px 12px;
-    }
-
-    .home-card-shell {
-        min-height: 210px;
     }
 }
 </style>
@@ -978,9 +972,7 @@ if st.session_state.tool is None:
         cols = st.columns(3, gap="medium")
         for col, key in zip(cols, row):
             with col:
-                st.markdown('<div class="home-card-shell">', unsafe_allow_html=True)
                 render_home_card(key)
-                st.markdown("</div>", unsafe_allow_html=True)
 
 # =====================================================
 # TOOL PANEL
