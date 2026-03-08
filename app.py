@@ -21,19 +21,10 @@ background:#f6f8fc;
 text-align:center;
 }
 
-.card{
-background:white;
-border:1px solid #e5e7eb;
-border-radius:16px;
-padding:20px;
-margin-bottom:15px;
-box-shadow:0 5px 15px rgba(0,0,0,0.05);
-}
-
 .tool-grid{
 display:grid;
 grid-template-columns:repeat(3,1fr);
-gap:15px;
+gap:20px;
 max-width:1000px;
 margin:auto;
 }
@@ -41,18 +32,20 @@ margin:auto;
 .tool-card{
 background:white;
 border:1px solid #e5e7eb;
-border-radius:16px;
-padding:15px;
+border-radius:18px;
+padding:25px;
 text-align:center;
+box-shadow:0 8px 20px rgba(0,0,0,0.05);
 }
 
 .tool-title{
 font-weight:700;
-font-size:16px;
+font-size:18px;
+margin-bottom:5px;
 }
 
 .tool-desc{
-font-size:13px;
+font-size:14px;
 color:#6b7280;
 margin-bottom:10px;
 }
@@ -66,7 +59,7 @@ background:#e5322d;
 color:white;
 border:none;
 padding:10px 20px;
-border-radius:8px;
+border-radius:10px;
 font-weight:600;
 }
 
@@ -111,56 +104,53 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # =====================================================
-# MENU SIDEBAR
+# ESTADO
 # =====================================================
-
-TOOLS = [
-"🔓 Remover senha",
-"📎 Juntar PDFs",
-"✂️ Dividir PDF",
-"🗜️ Comprimir PDF",
-"🖼️ PDF para imagem",
-"🖼️ Imagem para PDF"
-]
 
 if "tool" not in st.session_state:
-    st.session_state.tool = TOOLS[0]
-
-menu = st.sidebar.radio("Ferramentas", TOOLS, index=TOOLS.index(st.session_state.tool))
-
-st.session_state.tool = menu
+    st.session_state.tool = None
 
 # =====================================================
-# HOME CARDS
+# TELA INICIAL (BALÕES)
 # =====================================================
 
-tool_desc = {
-"🔓 Remover senha":"Remova a senha de arquivos protegidos",
-"📎 Juntar PDFs":"Combine vários PDFs em um único arquivo",
-"✂️ Dividir PDF":"Separe páginas de um PDF",
-"🗜️ Comprimir PDF":"Reduza o tamanho do arquivo",
-"🖼️ PDF para imagem":"Transforme páginas em imagens",
-"🖼️ Imagem para PDF":"Crie PDF a partir de imagens"
-}
+if st.session_state.tool is None:
 
-st.markdown('<div class="tool-grid">',unsafe_allow_html=True)
+    st.markdown('<div class="tool-grid">',unsafe_allow_html=True)
 
-for tool in TOOLS:
+    tools = {
+    "unlock":("🔓 Remover senha","Remova a senha de arquivos protegidos"),
+    "merge":("📎 Juntar PDFs","Combine vários PDFs em um único arquivo"),
+    "split":("✂️ Dividir PDF","Separe páginas de um PDF"),
+    "compress":("🗜️ Comprimir PDF","Reduza o tamanho do arquivo"),
+    "pdfimg":("🖼️ PDF para imagem","Transforme páginas em imagens"),
+    "imgpdf":("🖼️ Imagem para PDF","Crie PDF a partir de imagens")
+    }
 
-    st.markdown(f"""
-    <div class="tool-card">
-    <div class="tool-title">{tool}</div>
-    <div class="tool-desc">{tool_desc[tool]}</div>
-    </div>
-    """,unsafe_allow_html=True)
+    for key,(title,desc) in tools.items():
 
-    if st.button("Usar agora",key=tool):
-        st.session_state.tool = tool
+        st.markdown(f"""
+        <div class="tool-card">
+        <div class="tool-title">{title}</div>
+        <div class="tool-desc">{desc}</div>
+        </div>
+        """,unsafe_allow_html=True)
+
+        if st.button("Usar agora",key=key):
+            st.session_state.tool = key
+            st.rerun()
+
+    st.markdown('</div>',unsafe_allow_html=True)
+
+# =====================================================
+# BOTÃO VOLTAR
+# =====================================================
+
+else:
+
+    if st.button("⬅ Voltar para ferramentas"):
+        st.session_state.tool=None
         st.rerun()
-
-st.markdown('</div>',unsafe_allow_html=True)
-
-menu = st.session_state.tool
 
 # =====================================================
 # FUNÇÕES
@@ -187,9 +177,9 @@ def unlock_pdf(pdf_bytes,password):
 # REMOVER SENHA
 # =====================================================
 
-if menu == "🔓 Remover senha":
+if st.session_state.tool=="unlock":
 
-    st.markdown('<div class="card center">',unsafe_allow_html=True)
+    st.header("🔓 Remover senha de PDF")
 
     arquivos = st.file_uploader(
         "Envie os PDFs",
@@ -223,15 +213,13 @@ if menu == "🔓 Remover senha":
             "pdfs_desbloqueados.zip"
         )
 
-    st.markdown('</div>',unsafe_allow_html=True)
-
 # =====================================================
 # JUNTAR PDF
 # =====================================================
 
-elif menu == "📎 Juntar PDFs":
+elif st.session_state.tool=="merge":
 
-    st.markdown('<div class="card center">',unsafe_allow_html=True)
+    st.header("📎 Juntar PDFs")
 
     arquivos = st.file_uploader(
         "Selecione os PDFs",
@@ -259,15 +247,13 @@ elif menu == "📎 Juntar PDFs":
             "pdf_unido.pdf"
         )
 
-    st.markdown('</div>',unsafe_allow_html=True)
-
 # =====================================================
 # DIVIDIR PDF
 # =====================================================
 
-elif menu == "✂️ Dividir PDF":
+elif st.session_state.tool=="split":
 
-    st.markdown('<div class="card center">',unsafe_allow_html=True)
+    st.header("✂️ Dividir PDF")
 
     arquivo = st.file_uploader("Selecione o PDF", type="pdf")
 
@@ -303,15 +289,13 @@ elif menu == "✂️ Dividir PDF":
             st.download_button("Baixar parte 1",buffer1.getvalue(),"parte1.pdf")
             st.download_button("Baixar parte 2",buffer2.getvalue(),"parte2.pdf")
 
-    st.markdown('</div>',unsafe_allow_html=True)
-
 # =====================================================
-# COMPRIMIR PDF
+# COMPRIMIR
 # =====================================================
 
-elif menu == "🗜️ Comprimir PDF":
+elif st.session_state.tool=="compress":
 
-    st.markdown('<div class="card center">',unsafe_allow_html=True)
+    st.header("🗜️ Comprimir PDF")
 
     arquivo = st.file_uploader("Selecione o PDF", type="pdf")
 
@@ -332,33 +316,27 @@ elif menu == "🗜️ Comprimir PDF":
             "pdf_comprimido.pdf"
         )
 
-    st.markdown('</div>',unsafe_allow_html=True)
-
 # =====================================================
 # PDF PARA IMAGEM
 # =====================================================
 
-elif menu == "🖼️ PDF para imagem":
+elif st.session_state.tool=="pdfimg":
 
-    st.markdown('<div class="card center">',unsafe_allow_html=True)
+    st.header("🖼️ PDF para imagem")
 
     arquivo = st.file_uploader("Selecione o PDF", type="pdf")
 
     if arquivo:
-
         reader = PdfReader(arquivo)
-
         st.write("Total de páginas:",len(reader.pages))
-
-    st.markdown('</div>',unsafe_allow_html=True)
 
 # =====================================================
 # IMAGEM PARA PDF
 # =====================================================
 
-elif menu == "🖼️ Imagem para PDF":
+elif st.session_state.tool=="imgpdf":
 
-    st.markdown('<div class="card center">',unsafe_allow_html=True)
+    st.header("🖼️ Imagem para PDF")
 
     imagens = st.file_uploader(
         "Envie imagens",
@@ -384,5 +362,3 @@ elif menu == "🖼️ Imagem para PDF":
             buffer.getvalue(),
             "imagens.pdf"
         )
-
-    st.markdown('</div>',unsafe_allow_html=True)
