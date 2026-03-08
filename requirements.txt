@@ -1,4 +1,5 @@
 streamlit
 pypdf
 Pillow
-pdf2image
+PyMuPDF
+streamlit-sortables
