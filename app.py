@@ -1,53 +1,20 @@
-# PDF Fácil - Ferramentas PDF Online
-
 import io
-import os
-import time
 import zipfile
-from typing import List, Tuple
-
-import fitz
 import streamlit as st
-import streamlit.components.v1 as components
-from PIL import Image
 from pypdf import PdfReader, PdfWriter
-from streamlit_sortables import sort_items
+from PIL import Image
 
-
-st.set_page_config(
-    page_title="PDF Fácil",
-    page_icon="📄",
-    layout="wide"
-)
+st.set_page_config(page_title="PDF Fácil", page_icon="📄", layout="wide")
 
 # =====================================================
-# ESTILO VISUAL CORRIGIDO
+# ESTILO
 # =====================================================
 
 st.markdown("""
 <style>
 
-:root{
---primary:#e5322d;
---primary-hover:#c92b27;
---card:#ffffff;
---border:#e5e7eb;
---text:#1f2937;
---muted:#6b7280;
---radius:20px;
-}
-
-html,body,[data-testid="stAppViewContainer"]{
+body{
 background:#f6f8fc;
-color:var(--text);
-}
-
-header{
-background:transparent!important;
-}
-
-.block-container{
-padding-top:1rem;
 }
 
 .center{
@@ -55,67 +22,38 @@ text-align:center;
 }
 
 .card{
-background:var(--card);
-border:1px solid var(--border);
-border-radius:var(--radius);
-padding:1.4rem;
-box-shadow:0 10px 25px rgba(0,0,0,.06);
-margin-bottom:1rem;
-}
-
-.hero{
-text-align:center;
-margin-bottom:1.4rem;
-}
-
-.hero h1{
-font-size:2.6rem;
-font-weight:800;
-}
-
-.hero p{
-color:var(--muted);
-}
-
-.kpi-grid{
-display:grid;
-grid-template-columns:repeat(3,1fr);
-gap:10px;
-margin:1rem auto;
-max-width:900px;
-}
-
-.kpi{
 background:white;
-border:1px solid var(--border);
-border-radius:14px;
-padding:12px;
-text-align:center;
+border:1px solid #e5e7eb;
+border-radius:16px;
+padding:20px;
+margin-bottom:15px;
+box-shadow:0 5px 15px rgba(0,0,0,0.05);
 }
 
 .tool-grid{
 display:grid;
 grid-template-columns:repeat(3,1fr);
-gap:12px;
+gap:15px;
 max-width:1000px;
 margin:auto;
 }
 
 .tool-card{
 background:white;
-border:1px solid var(--border);
+border:1px solid #e5e7eb;
 border-radius:16px;
-padding:14px;
+padding:15px;
 text-align:center;
 }
 
 .tool-title{
 font-weight:700;
+font-size:16px;
 }
 
 .tool-desc{
-color:var(--muted);
-font-size:0.9rem;
+font-size:13px;
+color:#6b7280;
 margin-bottom:10px;
 }
 
@@ -124,21 +62,16 @@ text-align:center;
 }
 
 .stButton button{
-background:var(--primary);
+background:#e5322d;
 color:white;
 border:none;
 padding:10px 20px;
-border-radius:10px;
+border-radius:8px;
 font-weight:600;
 }
 
 .stButton button:hover{
-background:var(--primary-hover);
-}
-
-[data-testid="stFileUploaderDropzone"]{
-background:#f9fafb!important;
-border:2px dashed #cbd5e1!important;
+background:#c92b27;
 }
 
 [data-testid="stFileUploaderDropzoneInstructions"] div{
@@ -163,36 +96,22 @@ content:"Selecionar arquivos";
 font-size:14px;
 }
 
-label{
-text-align:center!important;
-display:block;
-width:100%;
-}
-
 </style>
 """, unsafe_allow_html=True)
 
 # =====================================================
-# HERO
+# HEADER
 # =====================================================
 
 st.markdown("""
-<div class="hero">
+<div class="center">
 <h1>PDF Fácil</h1>
 <p>Ferramentas simples para editar PDFs diretamente no navegador</p>
 </div>
 """, unsafe_allow_html=True)
 
-st.markdown("""
-<div class="kpi-grid">
-<div class="kpi">🔐 Desbloqueie PDFs protegidos</div>
-<div class="kpi">⚡ Simples e rápido</div>
-<div class="kpi">🖼 Converta arquivos facilmente</div>
-</div>
-""", unsafe_allow_html=True)
-
 # =====================================================
-# FERRAMENTAS
+# MENU SIDEBAR
 # =====================================================
 
 TOOLS = [
@@ -207,14 +126,13 @@ TOOLS = [
 if "tool" not in st.session_state:
     st.session_state.tool = TOOLS[0]
 
-menu = st.sidebar.radio("Ferramentas",TOOLS,index=TOOLS.index(st.session_state.tool))
+menu = st.sidebar.radio("Ferramentas", TOOLS, index=TOOLS.index(st.session_state.tool))
+
 st.session_state.tool = menu
 
 # =====================================================
-# CARDS HOME
+# HOME CARDS
 # =====================================================
-
-st.markdown('<div class="tool-grid">',unsafe_allow_html=True)
 
 tool_desc = {
 "🔓 Remover senha":"Remova a senha de arquivos protegidos",
@@ -224,6 +142,8 @@ tool_desc = {
 "🖼️ PDF para imagem":"Transforme páginas em imagens",
 "🖼️ Imagem para PDF":"Crie PDF a partir de imagens"
 }
+
+st.markdown('<div class="tool-grid">',unsafe_allow_html=True)
 
 for tool in TOOLS:
 
@@ -247,21 +167,27 @@ menu = st.session_state.tool
 # =====================================================
 
 def unlock_pdf(pdf_bytes,password):
+
     reader = PdfReader(io.BytesIO(pdf_bytes))
+
     if reader.is_encrypted:
         reader.decrypt(password)
+
     writer = PdfWriter()
+
     for page in reader.pages:
         writer.add_page(page)
+
     buffer = io.BytesIO()
     writer.write(buffer)
+
     return buffer.getvalue()
 
 # =====================================================
 # REMOVER SENHA
 # =====================================================
 
-if menu=="🔓 Remover senha":
+if menu == "🔓 Remover senha":
 
     st.markdown('<div class="card center">',unsafe_allow_html=True)
 
@@ -300,7 +226,163 @@ if menu=="🔓 Remover senha":
     st.markdown('</div>',unsafe_allow_html=True)
 
 # =====================================================
-# FOOTER
+# JUNTAR PDF
 # =====================================================
 
-st.markdown('<p class="center">Ferramentas PDF gratuitas online</p>',unsafe_allow_html=True)
+elif menu == "📎 Juntar PDFs":
+
+    st.markdown('<div class="card center">',unsafe_allow_html=True)
+
+    arquivos = st.file_uploader(
+        "Selecione os PDFs",
+        type="pdf",
+        accept_multiple_files=True
+    )
+
+    if st.button("Juntar PDFs"):
+
+        writer = PdfWriter()
+
+        for arquivo in arquivos:
+
+            reader = PdfReader(arquivo)
+
+            for page in reader.pages:
+                writer.add_page(page)
+
+        buffer = io.BytesIO()
+        writer.write(buffer)
+
+        st.download_button(
+            "Baixar PDF unido",
+            buffer.getvalue(),
+            "pdf_unido.pdf"
+        )
+
+    st.markdown('</div>',unsafe_allow_html=True)
+
+# =====================================================
+# DIVIDIR PDF
+# =====================================================
+
+elif menu == "✂️ Dividir PDF":
+
+    st.markdown('<div class="card center">',unsafe_allow_html=True)
+
+    arquivo = st.file_uploader("Selecione o PDF", type="pdf")
+
+    if arquivo:
+
+        reader = PdfReader(arquivo)
+
+        paginas = len(reader.pages)
+
+        pagina = st.number_input(
+            "Dividir após página",
+            min_value=1,
+            max_value=paginas-1
+        )
+
+        if st.button("Dividir PDF"):
+
+            writer1 = PdfWriter()
+            writer2 = PdfWriter()
+
+            for i in range(pagina):
+                writer1.add_page(reader.pages[i])
+
+            for i in range(pagina,paginas):
+                writer2.add_page(reader.pages[i])
+
+            buffer1 = io.BytesIO()
+            buffer2 = io.BytesIO()
+
+            writer1.write(buffer1)
+            writer2.write(buffer2)
+
+            st.download_button("Baixar parte 1",buffer1.getvalue(),"parte1.pdf")
+            st.download_button("Baixar parte 2",buffer2.getvalue(),"parte2.pdf")
+
+    st.markdown('</div>',unsafe_allow_html=True)
+
+# =====================================================
+# COMPRIMIR PDF
+# =====================================================
+
+elif menu == "🗜️ Comprimir PDF":
+
+    st.markdown('<div class="card center">',unsafe_allow_html=True)
+
+    arquivo = st.file_uploader("Selecione o PDF", type="pdf")
+
+    if st.button("Comprimir PDF"):
+
+        reader = PdfReader(arquivo)
+        writer = PdfWriter()
+
+        for page in reader.pages:
+            writer.add_page(page)
+
+        buffer = io.BytesIO()
+        writer.write(buffer)
+
+        st.download_button(
+            "Baixar PDF comprimido",
+            buffer.getvalue(),
+            "pdf_comprimido.pdf"
+        )
+
+    st.markdown('</div>',unsafe_allow_html=True)
+
+# =====================================================
+# PDF PARA IMAGEM
+# =====================================================
+
+elif menu == "🖼️ PDF para imagem":
+
+    st.markdown('<div class="card center">',unsafe_allow_html=True)
+
+    arquivo = st.file_uploader("Selecione o PDF", type="pdf")
+
+    if arquivo:
+
+        reader = PdfReader(arquivo)
+
+        st.write("Total de páginas:",len(reader.pages))
+
+    st.markdown('</div>',unsafe_allow_html=True)
+
+# =====================================================
+# IMAGEM PARA PDF
+# =====================================================
+
+elif menu == "🖼️ Imagem para PDF":
+
+    st.markdown('<div class="card center">',unsafe_allow_html=True)
+
+    imagens = st.file_uploader(
+        "Envie imagens",
+        type=["png","jpg","jpeg"],
+        accept_multiple_files=True
+    )
+
+    if st.button("Converter em PDF"):
+
+        lista = []
+
+        for img in imagens:
+
+            image = Image.open(img).convert("RGB")
+            lista.append(image)
+
+        buffer = io.BytesIO()
+
+        lista[0].save(buffer,save_all=True,append_images=lista[1:],format="PDF")
+
+        st.download_button(
+            "Baixar PDF",
+            buffer.getvalue(),
+            "imagens.pdf"
+        )
+
+    st.markdown('</div>',unsafe_allow_html=True)
