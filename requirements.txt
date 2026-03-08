@@ -1,6 +1,7 @@
 streamlit
 pypdf
 Pillow
-PyMuPDF
 python-docx
 pandas
+PyMuPDF
+reportlab
