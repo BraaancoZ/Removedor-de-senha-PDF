@@ -6,16 +6,65 @@ from typing import List, Tuple
 
 import fitz  # PyMuPDF
 import streamlit as st
+import streamlit.components.v1 as components
 from PIL import Image
 from pypdf import PdfReader, PdfWriter
 from streamlit_sortables import sort_items
 
+# =========================================================
+# CONFIG
+# =========================================================
+
 st.set_page_config(
-    page_title="Ferramentas PDF",
+    page_title="PDF Fácil",
     page_icon="📄",
     layout="wide",
     initial_sidebar_state="expanded",
 )
+
+TOOLS = [
+    "🔓 Remover senha",
+    "📎 Juntar PDFs",
+    "✂️ Dividir PDF",
+    "🗜️ Comprimir PDF",
+    "🖼️ PDF para imagem",
+    "🖼️ Imagem para PDF",
+]
+
+if "selected_tool" not in st.session_state:
+    st.session_state.selected_tool = TOOLS[0]
+
+# =========================================================
+# ANALYTICS
+# =========================================================
+
+def inject_google_analytics():
+    ga_id = ""
+    try:
+        ga_id = st.secrets.get("GOOGLE_ANALYTICS_ID", "")
+    except Exception:
+        ga_id = os.getenv("GOOGLE_ANALYTICS_ID", "")
+
+    if not ga_id:
+        return
+
+    components.html(
+        f"""
+        <script async src="https://www.googletagmanager.com/gtag/js?id={ga_id}"></script>
+        <script>
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){{dataLayer.push(arguments);}}
+          gtag('js', new Date());
+          gtag('config', '{ga_id}', {{
+            page_path: window.parent.location.pathname
+          }});
+        </script>
+        """,
+        height=0,
+        width=0,
+    )
+
+inject_google_analytics()
 
 # =========================================================
 # ESTILO
@@ -26,45 +75,80 @@ st.markdown(
 <style>
 :root {
     --bg: #f6f8fc;
+    --bg-2: #eef2ff;
     --card: #ffffff;
-    --text: #1f2937;
+    --text: #111827;
     --muted: #6b7280;
     --primary: #e5322d;
     --primary-hover: #c92b27;
     --border: #e5e7eb;
-    --shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
-    --radius: 20px;
+    --shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+    --radius: 22px;
+    --upload-bg: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bg: #0b1220;
+        --bg-2: #111827;
+        --card: rgba(17, 24, 39, 0.92);
+        --text: #f9fafb;
+        --muted: #cbd5e1;
+        --primary: #ef4444;
+        --primary-hover: #dc2626;
+        --border: rgba(148, 163, 184, 0.22);
+        --shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+        --upload-bg: linear-gradient(180deg, rgba(30,41,59,.92) 0%, rgba(15,23,42,.96) 100%);
+    }
 }
 
 html, body, [data-testid="stAppViewContainer"] {
-    background: linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%);
+    background: linear-gradient(180deg, var(--bg) 0%, var(--bg-2) 100%);
     color: var(--text);
 }
 
 [data-testid="stSidebar"] {
-    background: #ffffff;
+    background: var(--card);
     border-right: 1px solid var(--border);
 }
 
+[data-testid="stSidebar"] * {
+    color: var(--text) !important;
+}
+
 .block-container {
-    padding-top: 1.8rem;
+    padding-top: 1.4rem;
     padding-bottom: 3rem;
 }
 
 .hero {
-    max-width: 860px;
-    margin: 0 auto 1.2rem auto;
+    max-width: 960px;
+    margin: 0 auto 1.4rem auto;
     text-align: center;
     animation: fadeUp .55s ease-out;
 }
 
+.logo-badge {
+    width: 74px;
+    height: 74px;
+    margin: 0 auto 14px auto;
+    border-radius: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    background: linear-gradient(135deg, #ef4444 0%, #e5322d 100%);
+    box-shadow: 0 14px 32px rgba(229, 50, 45, 0.28);
+}
+
 .hero h1 {
-    font-size: 2.5rem;
+    font-size: 2.7rem;
     line-height: 1.1;
     margin-bottom: .35rem;
-    color: #111827;
+    color: var(--text);
     font-weight: 800;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.03em;
+    text-align: center !important;
 }
 
 .hero p {
@@ -76,24 +160,27 @@ html, body, [data-testid="stAppViewContainer"] {
 }
 
 .center-wrap {
-    max-width: 760px;
+    max-width: 820px;
     margin: 0 auto;
     animation: fadeUp .65s ease-out;
 }
 
 .card {
     background: var(--card);
-    border: 1px solid rgba(229,231,235,.9);
+    border: 1px solid var(--border);
     box-shadow: var(--shadow);
     border-radius: var(--radius);
     padding: 1.25rem 1.2rem;
     margin-bottom: 1rem;
 }
 
+.card h2, .card h3, .card p, .card div {
+    color: var(--text);
+}
+
 .card h2, .card h3 {
     text-align: center;
     margin-top: .15rem;
-    color: #111827;
 }
 
 .helper {
@@ -109,72 +196,17 @@ html, body, [data-testid="stAppViewContainer"] {
     font-size: .95rem;
 }
 
-.stTextInput, .stNumberInput, .stSelectbox, .stMultiSelect {
-    max-width: 560px;
-    margin-left: auto;
-    margin-right: auto;
-}
-
-[data-testid="stFileUploader"] {
-    max-width: 560px;
-    margin-left: auto;
-    margin-right: auto;
-}
-
-[data-testid="stFileUploaderDropzone"] {
-    border: 2px dashed #cbd5e1 !important;
-    border-radius: 18px !important;
-    background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%) !important;
-    padding: 1.2rem !important;
-    transition: all .25s ease;
-}
-
-[data-testid="stFileUploaderDropzone"]:hover {
-    border-color: #94a3b8 !important;
-    transform: translateY(-1px);
-    box-shadow: 0 8px 24px rgba(15, 23, 42, .08);
-}
-
-.stButton {
-    text-align: center;
-}
-
-.stButton > button {
-    background: var(--primary);
-    color: white;
-    border: none;
-    border-radius: 14px;
-    padding: .82rem 1.2rem;
-    font-weight: 700;
-    transition: all .2s ease;
-    box-shadow: 0 10px 20px rgba(229, 50, 45, .18);
-}
-
-.stButton > button:hover {
-    background: var(--primary-hover);
-    transform: translateY(-1px);
-}
-
-[data-testid="stDownloadButton"] {
-    text-align: center;
-}
-
-[data-testid="stDownloadButton"] > button {
-    border-radius: 12px;
-}
-
 .kpi-grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 12px;
-    margin: 1rem auto 1.25rem auto;
-    max-width: 860px;
+    margin: 1rem auto 1.35rem auto;
+    max-width: 900px;
 }
 
 .kpi {
-    background: rgba(255,255,255,.75);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(229,231,235,.95);
+    background: var(--card);
+    border: 1px solid var(--border);
     border-radius: 18px;
     box-shadow: var(--shadow);
     padding: 1rem;
@@ -195,11 +227,131 @@ html, body, [data-testid="stAppViewContainer"] {
 .kpi .value {
     font-size: 1.03rem;
     font-weight: 700;
-    color: #111827;
+    color: var(--text);
+}
+
+.tool-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+    margin: 0 auto 1.4rem auto;
+    max-width: 980px;
+}
+
+.tool-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    box-shadow: var(--shadow);
+    padding: 1rem;
+    text-align: center;
+    animation: fadeUp .85s ease-out;
+}
+
+.tool-icon {
+    font-size: 1.9rem;
+    margin-bottom: .55rem;
+}
+
+.tool-title {
+    font-weight: 800;
+    margin-bottom: .2rem;
+    color: var(--text);
+}
+
+.tool-desc {
+    color: var(--muted);
+    font-size: .95rem;
+    min-height: 42px;
+    margin-bottom: .75rem;
+}
+
+.stTextInput, .stNumberInput, .stSelectbox, .stMultiSelect, .stSlider {
+    max-width: 560px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+[data-testid="stFileUploader"] {
+    max-width: 560px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+[data-testid="stFileUploaderDropzone"] {
+    border: 2px dashed #cbd5e1 !important;
+    border-radius: 18px !important;
+    background: var(--upload-bg) !important;
+    padding: 1.2rem !important;
+    transition: all .25s ease;
+}
+
+[data-testid="stFileUploaderDropzone"]:hover {
+    border-color: #94a3b8 !important;
+    transform: translateY(-1px);
+    box-shadow: 0 8px 24px rgba(15, 23, 42, .10);
+}
+
+/* Traduz o texto principal do uploader */
+[data-testid="stFileUploaderDropzoneInstructions"] div {
+    visibility: hidden;
+    position: relative;
+}
+
+[data-testid="stFileUploaderDropzoneInstructions"] div::before {
+    content: "Arraste e solte os arquivos aqui";
+    visibility: visible;
+    position: absolute;
+    inset: 0;
+    color: var(--text);
+    text-align: center;
+    font-weight: 600;
+}
+
+/* Traduz o botão Browse files */
+[data-testid="stFileUploader"] section button {
+    font-size: 0 !important;
+}
+
+[data-testid="stFileUploader"] section button::after {
+    content: "Selecionar arquivos";
+    font-size: 0.96rem !important;
+    color: var(--text);
+    font-weight: 600;
+}
+
+/* Centraliza labels e inputs */
+label, .stTextInput label, .stNumberInput label, .stSelectbox label, .stMultiSelect label {
+    text-align: center !important;
+    width: 100%;
+    display: block;
+    color: var(--text) !important;
+}
+
+.stButton, [data-testid="stDownloadButton"] {
+    text-align: center;
+}
+
+.stButton > button,
+[data-testid="stDownloadButton"] > button {
+    background: var(--primary);
+    color: white !important;
+    border: none;
+    border-radius: 14px;
+    padding: .82rem 1.2rem;
+    font-weight: 700;
+    transition: all .2s ease;
+    box-shadow: 0 10px 20px rgba(229, 50, 45, .18);
+}
+
+.stButton > button:hover,
+[data-testid="stDownloadButton"] > button:hover {
+    background: var(--primary-hover);
+    transform: translateY(-1px);
 }
 
 .sort-box {
-    background: #fff;
+    background: var(--card);
     border: 1px solid var(--border);
     border-radius: 16px;
     padding: 1rem;
@@ -211,6 +363,7 @@ html, body, [data-testid="stAppViewContainer"] {
     font-weight: 700;
     margin-top: .5rem;
     margin-bottom: .75rem;
+    color: var(--text);
 }
 
 .footer-note {
@@ -218,6 +371,10 @@ html, body, [data-testid="stAppViewContainer"] {
     color: var(--muted);
     margin-top: 1.2rem;
     font-size: .95rem;
+}
+
+hr {
+    border-color: var(--border) !important;
 }
 
 @keyframes fadeUp {
@@ -231,12 +388,18 @@ html, body, [data-testid="stAppViewContainer"] {
     }
 }
 
-@media (max-width: 768px) {
-    .hero h1 {
-        font-size: 2rem;
+@media (max-width: 900px) {
+    .tool-grid {
+        grid-template-columns: 1fr;
     }
     .kpi-grid {
         grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .hero h1 {
+        font-size: 2rem;
     }
 }
 </style>
@@ -317,7 +480,6 @@ def split_pdf(pdf_bytes: bytes, split_after_page: int) -> Tuple[bytes, bytes]:
 
 
 def compress_pdf_bytes(pdf_bytes: bytes) -> bytes:
-    # Compressão mais forte usando PyMuPDF
     doc = fitz.open(stream=pdf_bytes, filetype="pdf")
     output = io.BytesIO()
     doc.save(
@@ -363,7 +525,7 @@ def images_to_pdf(image_files) -> bytes:
 def animated_progress(task_text: str, seconds: float = 0.8):
     status = st.empty()
     progress = st.progress(0)
-    steps = 20
+    steps = 24
     for i in range(steps):
         status.markdown(f"<div class='small-center'>{task_text}</div>", unsafe_allow_html=True)
         progress.progress((i + 1) / steps)
@@ -372,25 +534,26 @@ def animated_progress(task_text: str, seconds: float = 0.8):
     progress.empty()
 
 
+def select_tool(tool_name: str):
+    st.session_state.selected_tool = tool_name
+    st.session_state.tool_radio = tool_name
+
+
 # =========================================================
 # SIDEBAR
 # =========================================================
 
-st.sidebar.markdown("## 📄 Ferramentas PDF")
-menu = st.sidebar.radio(
+st.sidebar.markdown("## 📄 PDF Fácil")
+selected_tool = st.sidebar.radio(
     "Escolha uma ferramenta",
-    [
-        "🔓 Remover senha",
-        "📎 Juntar PDFs",
-        "✂️ Dividir PDF",
-        "🗜️ Comprimir PDF",
-        "🖼️ PDF para imagem",
-        "🖼️ Imagem para PDF",
-    ],
+    TOOLS,
+    index=TOOLS.index(st.session_state.selected_tool),
+    key="tool_radio",
 )
+st.session_state.selected_tool = selected_tool
 
 st.sidebar.markdown("---")
-st.sidebar.caption("Rápido, simples e pronto para celular.")
+st.sidebar.caption("Rápido, bonito e pronto para celular.")
 
 # =========================================================
 # HERO
@@ -399,7 +562,8 @@ st.sidebar.caption("Rápido, simples e pronto para celular.")
 st.markdown(
     """
 <div class="hero">
-    <h1>Ferramentas PDF Online</h1>
+    <div class="logo-badge">📄</div>
+    <h1>PDF Fácil</h1>
     <p>Ferramentas simples para editar PDFs diretamente no navegador</p>
 </div>
 """,
@@ -430,6 +594,40 @@ st.markdown(
 )
 
 # =========================================================
+# CARDS HOME
+# =========================================================
+
+tool_info = [
+    ("🔓 Remover senha", "Desbloqueie um ou vários PDFs protegidos."),
+    ("📎 Juntar PDFs", "Una vários arquivos em um único PDF."),
+    ("✂️ Dividir PDF", "Separe um PDF em duas partes."),
+    ("🗜️ Comprimir PDF", "Reduza o tamanho do arquivo."),
+    ("🖼️ PDF para imagem", "Converta páginas em PNG."),
+    ("🖼️ Imagem para PDF", "Transforme imagens em PDF."),
+]
+
+st.markdown('<div class="tool-grid">', unsafe_allow_html=True)
+cols = st.columns(3)
+for idx, (title, desc) in enumerate(tool_info):
+    with cols[idx % 3]:
+        st.markdown(
+            f"""
+            <div class="tool-card">
+                <div class="tool-icon">{title.split()[0]}</div>
+                <div class="tool-title">{title}</div>
+                <div class="tool-desc">{desc}</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        if st.button(f"Usar agora", key=f"use_{idx}"):
+            select_tool(title)
+            st.rerun()
+st.markdown("</div>", unsafe_allow_html=True)
+
+menu = st.session_state.selected_tool
+
+# =========================================================
 # REMOVER SENHA
 # =========================================================
 
@@ -443,19 +641,11 @@ if menu == "🔓 Remover senha":
     )
 
     arquivos = st.file_uploader(
-        "Arraste e solte os PDFs aqui",
+        "Arraste e solte os arquivos aqui",
         type=["pdf"],
         accept_multiple_files=True,
         help="Você também pode clicar para selecionar os arquivos.",
-    )
-
-    st.markdown(
-        """
-        <div class="small-center" style="margin-top:-8px; margin-bottom:14px;">
-            Selecionar arquivos PDF
-        </div>
-        """,
-        unsafe_allow_html=True,
+        key="unlock_files",
     )
 
     senha = st.text_input("Digite a senha do PDF", type="password")
@@ -469,7 +659,7 @@ if menu == "🔓 Remover senha":
             with preview_cols[idx % len(preview_cols)]:
                 st.image(previews[0], caption=arquivo.name, use_container_width=True)
 
-    if st.button("Desbloquear PDFs", use_container_width=False):
+    if st.button("Desbloquear PDFs"):
         if not arquivos:
             st.warning("Envie pelo menos um PDF.")
         elif not senha:
@@ -478,45 +668,42 @@ if menu == "🔓 Remover senha":
             arquivos_processados = []
             errors = []
 
-            try:
-                animated_progress("Processando arquivos...", seconds=1.0)
+            animated_progress("Processando arquivos...", seconds=1.0)
 
-                for arquivo in arquivos:
-                    try:
-                        original_name = os.path.basename(arquivo.name)
-                        unlocked_bytes = remove_password_from_pdf(arquivo.getvalue(), senha)
-                        arquivos_processados.append((original_name, unlocked_bytes))
-                    except Exception:
-                        errors.append(arquivo.name)
+            for arquivo in arquivos:
+                try:
+                    original_name = os.path.basename(arquivo.name)
+                    unlocked_bytes = remove_password_from_pdf(arquivo.getvalue(), senha)
+                    arquivos_processados.append((original_name, unlocked_bytes))
+                except Exception:
+                    errors.append(arquivo.name)
 
-                if arquivos_processados:
-                    st.success("Processamento concluído.")
+            if arquivos_processados:
+                st.success("Processamento concluído.")
 
-                    zip_buffer = io.BytesIO()
-                    with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
-                        for nome, data in arquivos_processados:
-                            zip_file.writestr(nome, data)
+                zip_buffer = io.BytesIO()
+                with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
+                    for nome, data in arquivos_processados:
+                        zip_file.writestr(nome, data)
 
+                st.download_button(
+                    "📦 Baixar todos os PDFs de uma vez",
+                    data=zip_buffer.getvalue(),
+                    file_name="pdfs_desbloqueados.zip",
+                    mime="application/zip",
+                )
+
+                for nome, data in arquivos_processados:
                     st.download_button(
-                        "📦 Baixar todos os PDFs de uma vez",
-                        data=zip_buffer.getvalue(),
-                        file_name="pdfs_desbloqueados.zip",
-                        mime="application/zip",
+                        f"Baixar {nome}",
+                        data=data,
+                        file_name=nome,
+                        mime="application/pdf",
+                        key=f"download_unlock_{nome}",
                     )
 
-                    for nome, data in arquivos_processados:
-                        st.download_button(
-                            f"Baixar {nome}",
-                            data=data,
-                            file_name=nome,
-                            mime="application/pdf",
-                        )
-
-                if errors:
-                    st.error("Não foi possível processar: " + ", ".join(errors))
-
-            except Exception as e:
-                st.error(f"Erro ao processar os arquivos: {e}")
+            if errors:
+                st.error("Não foi possível processar: " + ", ".join(errors))
 
     st.markdown("</div></div>", unsafe_allow_html=True)
 
@@ -534,19 +721,10 @@ elif menu == "📎 Juntar PDFs":
     )
 
     arquivos = st.file_uploader(
-        "Arraste e solte os PDFs aqui",
+        "Arraste e solte os arquivos aqui",
         type=["pdf"],
         accept_multiple_files=True,
         key="merge_uploader",
-    )
-
-    st.markdown(
-        """
-        <div class="small-center" style="margin-top:-8px; margin-bottom:14px;">
-            Selecionar arquivos PDF
-        </div>
-        """,
-        unsafe_allow_html=True,
     )
 
     if arquivos:
@@ -569,20 +747,17 @@ elif menu == "📎 Juntar PDFs":
                 st.image(previews[0], caption=nome, use_container_width=True)
 
         if st.button("Juntar PDFs"):
-            try:
-                animated_progress("Unindo arquivos...", seconds=0.9)
-                ordered_files = [(nome, file_map[nome]) for nome in ordered_names]
-                merged_bytes = merge_pdfs(ordered_files)
+            animated_progress("Unindo arquivos...", seconds=0.9)
+            ordered_files = [(nome, file_map[nome]) for nome in ordered_names]
+            merged_bytes = merge_pdfs(ordered_files)
 
-                st.success("PDF unido com sucesso.")
-                st.download_button(
-                    "📥 Baixar PDF unido",
-                    data=merged_bytes,
-                    file_name="pdf_unido.pdf",
-                    mime="application/pdf",
-                )
-            except Exception as e:
-                st.error(f"Erro ao juntar PDFs: {e}")
+            st.success("PDF unido com sucesso.")
+            st.download_button(
+                "📥 Baixar PDF unido",
+                data=merged_bytes,
+                file_name="pdf_unido.pdf",
+                mime="application/pdf",
+            )
 
     st.markdown("</div></div>", unsafe_allow_html=True)
 
@@ -599,7 +774,7 @@ elif menu == "✂️ Dividir PDF":
         unsafe_allow_html=True,
     )
 
-    arquivo = st.file_uploader("Arraste e solte o PDF aqui", type=["pdf"], key="split_pdf")
+    arquivo = st.file_uploader("Arraste e solte o arquivo aqui", type=["pdf"], key="split_pdf")
 
     if arquivo:
         pdf_bytes = arquivo.getvalue()
@@ -621,15 +796,12 @@ elif menu == "✂️ Dividir PDF":
         )
 
         if st.button("Dividir PDF"):
-            try:
-                animated_progress("Dividindo arquivo...", seconds=0.7)
-                parte1, parte2 = split_pdf(pdf_bytes, pagina)
+            animated_progress("Dividindo arquivo...", seconds=0.7)
+            parte1, parte2 = split_pdf(pdf_bytes, pagina)
 
-                st.success("PDF dividido com sucesso.")
-                st.download_button("📥 Baixar parte 1", parte1, "parte_1.pdf", mime="application/pdf")
-                st.download_button("📥 Baixar parte 2", parte2, "parte_2.pdf", mime="application/pdf")
-            except Exception as e:
-                st.error(f"Erro ao dividir PDF: {e}")
+            st.success("PDF dividido com sucesso.")
+            st.download_button("📥 Baixar parte 1", parte1, "parte_1.pdf", mime="application/pdf")
+            st.download_button("📥 Baixar parte 2", parte2, "parte_2.pdf", mime="application/pdf")
 
     st.markdown("</div></div>", unsafe_allow_html=True)
 
@@ -646,7 +818,7 @@ elif menu == "🗜️ Comprimir PDF":
         unsafe_allow_html=True,
     )
 
-    arquivo = st.file_uploader("Arraste e solte o PDF aqui", type=["pdf"], key="compress_pdf")
+    arquivo = st.file_uploader("Arraste e solte o arquivo aqui", type=["pdf"], key="compress_pdf")
 
     if arquivo:
         original_bytes = arquivo.getvalue()
@@ -662,28 +834,25 @@ elif menu == "🗜️ Comprimir PDF":
                 st.image(img, caption=f"Preview {i+1}", use_container_width=True)
 
         if st.button("Comprimir PDF"):
-            try:
-                animated_progress("Comprimindo arquivo...", seconds=1.0)
-                compressed = compress_pdf_bytes(original_bytes)
+            animated_progress("Comprimindo arquivo...", seconds=1.0)
+            compressed = compress_pdf_bytes(original_bytes)
 
-                reduction = 0
-                if len(original_bytes) > 0:
-                    reduction = (1 - (len(compressed) / len(original_bytes))) * 100
+            reduction = 0
+            if len(original_bytes) > 0:
+                reduction = (1 - (len(compressed) / len(original_bytes))) * 100
 
-                st.success("Compressão concluída.")
-                st.markdown(
-                    f"<div class='small-center'>Novo tamanho: <strong>{human_size(len(compressed))}</strong> | Redução aproximada: <strong>{reduction:.1f}%</strong></div>",
-                    unsafe_allow_html=True,
-                )
+            st.success("Compressão concluída.")
+            st.markdown(
+                f"<div class='small-center'>Novo tamanho: <strong>{human_size(len(compressed))}</strong> | Redução aproximada: <strong>{reduction:.1f}%</strong></div>",
+                unsafe_allow_html=True,
+            )
 
-                st.download_button(
-                    "📥 Baixar PDF comprimido",
-                    compressed,
-                    "pdf_comprimido.pdf",
-                    mime="application/pdf",
-                )
-            except Exception as e:
-                st.error(f"Erro ao comprimir PDF: {e}")
+            st.download_button(
+                "📥 Baixar PDF comprimido",
+                compressed,
+                "pdf_comprimido.pdf",
+                mime="application/pdf",
+            )
 
     st.markdown("</div></div>", unsafe_allow_html=True)
 
@@ -700,7 +869,7 @@ elif menu == "🖼️ PDF para imagem":
         unsafe_allow_html=True,
     )
 
-    arquivo = st.file_uploader("Arraste e solte o PDF aqui", type=["pdf"], key="pdf_to_img")
+    arquivo = st.file_uploader("Arraste e solte o arquivo aqui", type=["pdf"], key="pdf_to_img")
 
     if arquivo:
         pdf_bytes = arquivo.getvalue()
@@ -711,19 +880,16 @@ elif menu == "🖼️ PDF para imagem":
                 st.image(img, caption=f"Página {idx+1}", use_container_width=True)
 
         if st.button("Converter PDF para imagens"):
-            try:
-                animated_progress("Convertendo páginas...", seconds=1.0)
-                zip_png = pdf_to_png_zip(pdf_bytes)
+            animated_progress("Convertendo páginas...", seconds=1.0)
+            zip_png = pdf_to_png_zip(pdf_bytes)
 
-                st.success("Conversão concluída.")
-                st.download_button(
-                    "📥 Baixar imagens em ZIP",
-                    zip_png,
-                    "pdf_para_imagens.zip",
-                    mime="application/zip",
-                )
-            except Exception as e:
-                st.error(f"Erro ao converter PDF para imagem: {e}")
+            st.success("Conversão concluída.")
+            st.download_button(
+                "📥 Baixar imagens em ZIP",
+                zip_png,
+                "pdf_para_imagens.zip",
+                mime="application/zip",
+            )
 
     st.markdown("</div></div>", unsafe_allow_html=True)
 
@@ -741,19 +907,10 @@ elif menu == "🖼️ Imagem para PDF":
     )
 
     imagens = st.file_uploader(
-        "Arraste e solte as imagens aqui",
+        "Arraste e solte os arquivos aqui",
         type=["png", "jpg", "jpeg"],
         accept_multiple_files=True,
         key="img_to_pdf",
-    )
-
-    st.markdown(
-        """
-        <div class="small-center" style="margin-top:-8px; margin-bottom:14px;">
-            Selecionar arquivos de imagem
-        </div>
-        """,
-        unsafe_allow_html=True,
     )
 
     if imagens:
@@ -763,19 +920,16 @@ elif menu == "🖼️ Imagem para PDF":
                 st.image(img_file, caption=img_file.name, use_container_width=True)
 
         if st.button("Converter imagens para PDF"):
-            try:
-                animated_progress("Montando PDF...", seconds=0.9)
-                pdf_bytes = images_to_pdf(imagens)
+            animated_progress("Montando PDF...", seconds=0.9)
+            pdf_bytes = images_to_pdf(imagens)
 
-                st.success("PDF criado com sucesso.")
-                st.download_button(
-                    "📥 Baixar PDF",
-                    pdf_bytes,
-                    "imagens_convertidas.pdf",
-                    mime="application/pdf",
-                )
-            except Exception as e:
-                st.error(f"Erro ao converter imagens para PDF: {e}")
+            st.success("PDF criado com sucesso.")
+            st.download_button(
+                "📥 Baixar PDF",
+                pdf_bytes,
+                "imagens_convertidas.pdf",
+                mime="application/pdf",
+            )
 
     st.markdown("</div></div>", unsafe_allow_html=True)
 
