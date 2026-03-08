@@ -44,12 +44,12 @@ ALL_TOOLS = {**MAIN_TOOLS, **CONVERSION_TOOLS}
 TOOL_ICONS = {
     "unlock": "🔓",
     "merge": "📎",
-    "split": "✂️",
-    "reorganize": "🗂️",
-    "compress": "🗜️",
-    "imgpdf": "🖼️",
-    "pdfjpg": "🖼️",
-    "pdfword": "📄",
+    "split": "✂",
+    "reorganize": "🗂",
+    "compress": "🗜",
+    "imgpdf": "🖼",
+    "pdfjpg": "🖼",
+    "pdfword": "📝",
     "wordpdf": "📄",
 }
 
@@ -60,7 +60,7 @@ DESCRIPTIONS = {
     "reorganize": "Reordene, exclua e adicione páginas ao PDF.",
     "compress": "Reduza o tamanho do arquivo PDF.",
     "imgpdf": "Converta imagens JPG ou PNG em PDF.",
-    "pdfjpg": "Transforme páginas de PDF em imagens JPG.",
+    "pdfjpg": "Transforme páginas do PDF em imagens JPG.",
     "pdfword": "Extraia o texto do PDF para Word.",
     "wordpdf": "Converta DOCX em PDF simples.",
 }
@@ -72,7 +72,7 @@ BANNERS = {
     ),
     "merge": (
         "Juntar PDFs",
-        "Envie vários PDFs, arraste as páginas para organizar e gere um único arquivo final.",
+        "Envie vários PDFs, reorganize a ordem das páginas e gere um único arquivo final.",
     ),
     "split": (
         "Dividir PDF",
@@ -80,7 +80,7 @@ BANNERS = {
     ),
     "reorganize": (
         "Reorganizar PDF",
-        "Arraste as páginas, exclua o que não quiser e gere um novo PDF.",
+        "Arraste páginas, exclua o que não quiser e gere um novo PDF.",
     ),
     "compress": (
         "Comprimir PDF",
@@ -403,24 +403,6 @@ def apply_drag_order(df: pd.DataFrame, sorted_labels: List[str]) -> pd.DataFrame
     return pd.DataFrame(ordered_rows)
 
 
-def render_image_preview(image_files):
-    if not image_files:
-        return
-
-    st.markdown("### Preview das imagens")
-    previews = list(image_files)[:8]
-    for chunk in chunk_list(previews, 4):
-        cols = st.columns(4, gap="medium")
-        for col, img_file in zip(cols, chunk):
-            with col:
-                try:
-                    img = Image.open(img_file)
-                    st.image(img, use_container_width=True)
-                    st.caption(img_file.name)
-                except Exception:
-                    st.caption(img_file.name)
-
-
 def file_summary_box(files, accepted_label: str):
     if not files:
         return
@@ -441,10 +423,28 @@ def file_summary_box(files, accepted_label: str):
     )
 
 
+def render_image_preview(image_files):
+    if not image_files:
+        return
+
+    st.markdown("### Preview das imagens")
+    previews = list(image_files)[:8]
+    for chunk in chunk_list(previews, 4):
+        cols = st.columns(4, gap="medium")
+        for col, img_file in zip(cols, chunk):
+            with col:
+                try:
+                    img = Image.open(img_file)
+                    st.image(img, use_container_width=True)
+                    st.caption(img_file.name)
+                except Exception:
+                    st.caption(img_file.name)
+
+
 def render_sort_area(df: pd.DataFrame, key_prefix: str, title: str):
     st.markdown('<div class="section-box">', unsafe_allow_html=True)
     st.markdown(f"### {title}")
-    st.caption("Arraste os cartões abaixo. O preview é atualizado conforme a ordem escolhida.")
+    st.caption("Arraste os cartões abaixo para reorganizar. O preview é atualizado conforme a ordem escolhida.")
     labels = df.sort_values("ordem")["rotulo"].tolist()
     sorted_labels = sort_items(labels, direction="horizontal", key=f"{key_prefix}_sort_center")
     new_df = apply_drag_order(df, sorted_labels)
@@ -452,12 +452,7 @@ def render_sort_area(df: pd.DataFrame, key_prefix: str, title: str):
     return new_df
 
 
-def render_clickable_preview(
-    plan_df: pd.DataFrame,
-    file_bytes_map: Dict[str, bytes],
-    title: str,
-    selected_state_key: str,
-):
+def render_preview(plan_df: pd.DataFrame, file_bytes_map: Dict[str, bytes], title: str):
     selected = plan_df[plan_df["incluir"] == True].sort_values("ordem")
 
     st.markdown(f"### {title}")
@@ -469,35 +464,25 @@ def render_clickable_preview(
     for chunk in chunk_list(rows, 4):
         cols = st.columns(4, gap="medium")
         for col, item in zip(cols, chunk):
-            page_id = item["id"]
-            is_active = st.session_state.get(selected_state_key) == page_id
-
             with col:
                 try:
                     img = get_pdf_thumbnail(
                         file_bytes_map[item["arquivo"]],
                         int(item["pagina_pdf"]) - 1,
-                        zoom=0.75 if is_active else 0.58,
+                        zoom=0.70,
                     )
                     st.markdown(
                         f"""
                         <div class="preview-page-card">
-                            <div class="page-order-badge {'active-badge' if is_active else ''}">{int(item["ordem"])}</div>
+                            <div class="page-order-badge">{int(item["ordem"])}</div>
                         </div>
                         """,
                         unsafe_allow_html=True,
                     )
                     st.image(img, use_container_width=True)
-                    if st.button(
-                        f"Selecionar página {int(item['ordem'])}",
-                        key=f"{selected_state_key}_{page_id}",
-                    ):
-                        st.session_state[selected_state_key] = page_id
-                        st.rerun()
-
                     st.markdown(
                         f"""
-                        <div class="page-meta {'page-meta-active' if is_active else ''}">
+                        <div class="page-meta">
                             <strong>{item["arquivo"]}</strong><br>
                             Página {int(item["pagina_pdf"])}
                         </div>
@@ -532,6 +517,14 @@ def render_home_card(key: str):
         set_tool(key)
     st.markdown("</div>", unsafe_allow_html=True)
 
+
+def render_upload_block(title: str, uploader_fn):
+    st.markdown('<div class="section-box upload-section">', unsafe_allow_html=True)
+    st.markdown(f'<div class="upload-zone-title">{title}</div>', unsafe_allow_html=True)
+    result = uploader_fn()
+    st.markdown("</div>", unsafe_allow_html=True)
+    return result
+
 # =====================================================
 # CSS
 # =====================================================
@@ -547,6 +540,8 @@ st.markdown("""
     --red: #e5322d;
     --red-dark: #cc2420;
     --shadow: 0 10px 28px rgba(0,0,0,.05);
+    --shadow-soft: 0 8px 18px rgba(0,0,0,.04);
+    --radius: 20px;
 }
 
 html, body, [data-testid="stAppViewContainer"] {
@@ -564,7 +559,7 @@ header, [data-testid="stHeader"] {
 
 .block-container {
     max-width: 1240px !important;
-    padding-top: 1.1rem !important;
+    padding-top: 1rem !important;
     padding-bottom: 2rem !important;
 }
 
@@ -577,30 +572,32 @@ header, [data-testid="stHeader"] {
     border: 1px solid var(--line);
     border-radius: 18px;
     padding: 12px 14px;
-    box-shadow: var(--shadow);
+    box-shadow: var(--shadow-soft);
     margin-bottom: 16px;
+    animation: fadeUp .35s ease;
 }
 
 .brand-line {
     display: flex;
     align-items: center;
     gap: 12px;
-    margin-bottom: 14px;
+    margin-bottom: 10px;
 }
 
 .brand-logo {
-    width: 46px;
-    height: 46px;
+    width: 48px;
+    height: 48px;
     border-radius: 14px;
     background: var(--red);
     display: inline-flex;
     align-items: center;
     justify-content: center;
     font-size: 24px;
+    color: #fff;
 }
 
 .brand-title {
-    font-size: 1.6rem;
+    font-size: 1.65rem;
     font-weight: 900;
     margin: 0;
     color: var(--text) !important;
@@ -609,32 +606,33 @@ header, [data-testid="stHeader"] {
 .brand-subtitle {
     margin: 0;
     color: var(--muted) !important;
-    font-size: 0.95rem;
+    font-size: 0.96rem;
 }
 
 .hero-box {
-    background: #fff;
+    background: linear-gradient(180deg, #ffffff 0%, #fbfbfb 100%);
     border: 1px solid var(--line);
-    border-radius: 22px;
-    padding: 28px 20px;
+    border-radius: 24px;
+    padding: 30px 20px;
     text-align: center;
     box-shadow: var(--shadow);
     margin-bottom: 18px;
+    animation: fadeUp .45s ease;
 }
 
 .hero-box h1 {
     margin: 0 0 10px 0;
-    font-size: 2.4rem;
-    line-height: 1.1;
+    font-size: 2.55rem;
+    line-height: 1.08;
     font-weight: 900;
     color: var(--text) !important;
 }
 
 .hero-box p {
     margin: 0 auto;
-    max-width: 720px;
+    max-width: 760px;
     color: var(--muted) !important;
-    font-size: 1rem;
+    font-size: 1.03rem;
 }
 
 .chips {
@@ -653,6 +651,36 @@ header, [data-testid="stHeader"] {
     font-size: 0.9rem;
     font-weight: 700;
     color: var(--text) !important;
+    transition: transform .18s ease, box-shadow .18s ease;
+}
+
+.chip:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-soft);
+}
+
+.big-home-upload {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 24px;
+    padding: 24px 20px;
+    box-shadow: var(--shadow);
+    margin-bottom: 18px;
+    animation: fadeUp .5s ease;
+}
+
+.big-home-upload-title {
+    text-align: center;
+    font-size: 1.18rem;
+    font-weight: 900;
+    margin-bottom: 8px;
+    color: var(--text) !important;
+}
+
+.big-home-upload-subtitle {
+    text-align: center;
+    color: var(--muted) !important;
+    margin-bottom: 12px;
 }
 
 .tool-banner {
@@ -663,11 +691,12 @@ header, [data-testid="stHeader"] {
     box-shadow: var(--shadow);
     text-align: center;
     margin-bottom: 16px;
+    animation: fadeUp .35s ease;
 }
 
 .tool-banner h2 {
     margin: 0;
-    font-size: 1.9rem;
+    font-size: 1.95rem;
     font-weight: 900;
     color: var(--text) !important;
 }
@@ -683,6 +712,7 @@ header, [data-testid="stHeader"] {
     border-radius: 22px;
     padding: 22px 18px 26px 18px;
     box-shadow: var(--shadow);
+    animation: fadeUp .4s ease;
 }
 
 .section-box {
@@ -691,13 +721,24 @@ header, [data-testid="stHeader"] {
     border-radius: 18px;
     padding: 16px;
     margin-bottom: 16px;
+    transition: box-shadow .18s ease, transform .18s ease;
+}
+
+.section-box:hover {
+    box-shadow: var(--shadow-soft);
+}
+
+.upload-section {
+    padding-top: 22px;
+    padding-bottom: 22px;
 }
 
 .upload-zone-title {
     text-align: center;
-    font-weight: 800;
-    font-size: 1.1rem;
-    margin-bottom: 8px;
+    font-weight: 900;
+    font-size: 1.12rem;
+    margin-bottom: 10px;
+    color: var(--text) !important;
 }
 
 .upload-summary {
@@ -726,12 +767,9 @@ header, [data-testid="stHeader"] {
     border-radius: 999px;
     background: var(--red);
     color: #fff !important;
-    font-size: 1.15rem;
+    font-size: 1.12rem;
     font-weight: 900;
-}
-
-.active-badge {
-    box-shadow: 0 0 0 4px rgba(229, 50, 45, 0.16);
+    box-shadow: 0 8px 20px rgba(229, 50, 45, .18);
 }
 
 .page-meta {
@@ -747,11 +785,6 @@ header, [data-testid="stHeader"] {
     min-height: 62px;
 }
 
-.page-meta-active {
-    border-color: #f5b3b1;
-    background: #fff7f7;
-}
-
 .preview-card-fallback {
     background: #fff;
     border: 1px solid var(--line);
@@ -764,18 +797,21 @@ header, [data-testid="stHeader"] {
 [data-testid="stDownloadButton"] > button {
     width: 100%;
     border-radius: 12px !important;
-    padding: 0.82rem 1rem !important;
+    padding: 0.84rem 1rem !important;
     font-weight: 800 !important;
     border: none !important;
+    transition: transform .18s ease, box-shadow .18s ease, background .18s ease !important;
 }
 
 .stButton > button {
     background: var(--red) !important;
     color: white !important;
+    box-shadow: 0 10px 18px rgba(229, 50, 45, .14) !important;
 }
 
 .stButton > button:hover {
     background: var(--red-dark) !important;
+    transform: translateY(-1px);
 }
 
 [data-testid="stDownloadButton"] > button {
@@ -783,17 +819,24 @@ header, [data-testid="stHeader"] {
     color: white !important;
 }
 
+[data-testid="stDownloadButton"] > button:hover {
+    background: #000 !important;
+    transform: translateY(-1px);
+}
+
 [data-testid="stFileUploaderDropzone"] {
     background: #fff !important;
     border: 2px dashed #d1d5db !important;
-    border-radius: 18px !important;
-    padding-top: 28px !important;
-    padding-bottom: 28px !important;
+    border-radius: 20px !important;
+    padding-top: 36px !important;
+    padding-bottom: 36px !important;
+    transition: border-color .18s ease, background .18s ease, transform .18s ease !important;
 }
 
 [data-testid="stFileUploaderDropzone"]:hover {
     border-color: var(--red) !important;
     background: #fffafa !important;
+    transform: translateY(-1px);
 }
 
 [data-testid="stFileUploaderDropzoneInstructions"] div {
@@ -808,7 +851,7 @@ header, [data-testid="stHeader"] {
     inset: 0;
     text-align: center;
     color: var(--text) !important;
-    font-weight: 700;
+    font-weight: 800;
     font-size: 1rem;
 }
 
@@ -850,13 +893,20 @@ header, [data-testid="stHeader"] {
 .home-card-shell {
     background: #fff;
     border: 1px solid var(--line);
-    border-radius: 18px;
-    box-shadow: var(--shadow);
+    border-radius: 20px;
+    box-shadow: var(--shadow-soft);
     padding: 18px;
-    min-height: 180px;
+    min-height: 185px;
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
+    transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+}
+
+.home-card-shell:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow);
+    border-color: #d9dde3;
 }
 
 .home-card-icon {
@@ -896,24 +946,64 @@ header, [data-testid="stHeader"] {
     font-size: 0.95rem;
 }
 
+@keyframes fadeUp {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
 @media (max-width: 900px) {
+    .block-container {
+        padding-top: .6rem !important;
+        padding-left: .8rem !important;
+        padding-right: .8rem !important;
+    }
+
+    .hero-box {
+        padding: 22px 14px;
+        border-radius: 18px;
+    }
+
     .hero-box h1 {
         font-size: 1.9rem;
     }
 
+    .hero-box p {
+        font-size: 0.96rem;
+    }
+
     .tool-banner h2 {
-        font-size: 1.5rem;
+        font-size: 1.45rem;
     }
 
     .tool-panel {
         padding: 16px 12px 20px 12px;
+        border-radius: 18px;
+    }
+
+    .home-card-shell {
+        min-height: 205px;
+    }
+
+    .home-card-desc {
+        min-height: 72px;
+    }
+
+    .big-home-upload {
+        padding: 18px 12px;
+        border-radius: 18px;
     }
 }
 </style>
 """, unsafe_allow_html=True)
 
 # =====================================================
-# HEADER / TOP MENU
+# HEADER
 # =====================================================
 
 feature_chips_html = "".join([f'<div class="chip">{item}</div>' for item in FEATURE_CHIPS])
@@ -924,7 +1014,7 @@ hero_html = f"""
         <div class="brand-logo">📄</div>
         <div>
             <div class="brand-title">PDF Fácil</div>
-            <div class="brand-subtitle">Ferramentas online para PDF com visual simples e prático</div>
+            <div class="brand-subtitle">Ferramentas online para PDF com visual moderno e prático</div>
         </div>
     </div>
 </div>
@@ -940,8 +1030,11 @@ hero_html = f"""
     </div>
 </div>
 """
-
 st.markdown(hero_html, unsafe_allow_html=True)
+
+# =====================================================
+# MENU SUPERIOR
+# =====================================================
 
 nav_cols = st.columns([1, 1, 1, 1, 1, 1.2], gap="small")
 main_order = ["unlock", "merge", "split", "reorganize", "compress"]
@@ -966,6 +1059,24 @@ with nav_cols[-1]:
 # =====================================================
 
 if st.session_state.tool is None:
+    st.markdown(
+        """
+        <div class="big-home-upload">
+            <div class="big-home-upload-title">Envie um PDF e comece agora</div>
+            <div class="big-home-upload-subtitle">Depois você escolhe a ferramenta que deseja usar</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    st.file_uploader(
+        "Envie um PDF",
+        type=["pdf"],
+        accept_multiple_files=False,
+        key="home_big_upload",
+        label_visibility="collapsed",
+    )
+
     st.markdown("<div style='height:10px;'></div>", unsafe_allow_html=True)
 
     for row in chunk_list(HOME_ORDER, 3):
@@ -1004,18 +1115,18 @@ if st.session_state.tool is not None:
     st.markdown('<div class="tool-panel">', unsafe_allow_html=True)
 
     if st.session_state.tool == "unlock":
-        st.markdown('<div class="section-box">', unsafe_allow_html=True)
-        st.markdown('<div class="upload-zone-title">Envie os PDFs protegidos</div>', unsafe_allow_html=True)
-        arquivos = st.file_uploader(
+        arquivos = render_upload_block(
             "Envie os PDFs protegidos",
-            type=["pdf"],
-            accept_multiple_files=True,
-            key="unlock_files",
-            label_visibility="collapsed",
+            lambda: st.file_uploader(
+                "Envie os PDFs protegidos",
+                type=["pdf"],
+                accept_multiple_files=True,
+                key="unlock_files",
+                label_visibility="collapsed",
+            )
         )
         file_summary_box(arquivos, "PDF")
         senha = st.text_input("Digite a senha do PDF", type="password")
-        st.markdown("</div>", unsafe_allow_html=True)
 
         action_cols = st.columns([1, 1, 1])
         with action_cols[1]:
@@ -1054,17 +1165,17 @@ if st.session_state.tool is not None:
                     st.error(str(e))
 
     elif st.session_state.tool == "merge":
-        st.markdown('<div class="section-box">', unsafe_allow_html=True)
-        st.markdown('<div class="upload-zone-title">Selecione os PDFs</div>', unsafe_allow_html=True)
-        arquivos = st.file_uploader(
+        arquivos = render_upload_block(
             "Selecione os PDFs",
-            type=["pdf"],
-            accept_multiple_files=True,
-            key="merge_files",
-            label_visibility="collapsed",
+            lambda: st.file_uploader(
+                "Selecione os PDFs",
+                type=["pdf"],
+                accept_multiple_files=True,
+                key="merge_files",
+                label_visibility="collapsed",
+            )
         )
         file_summary_box(arquivos, "PDF")
-        st.markdown("</div>", unsafe_allow_html=True)
 
         file_bytes_map = {}
         if arquivos:
@@ -1098,11 +1209,10 @@ if st.session_state.tool is not None:
             )
             st.session_state.merge_editor_df = edited_df
 
-            render_clickable_preview(
+            render_preview(
                 st.session_state.merge_editor_df,
                 file_bytes_map,
                 "Preview das páginas selecionadas",
-                "merge_selected_page",
             )
 
         action_cols = st.columns([1, 1, 1])
@@ -1126,17 +1236,17 @@ if st.session_state.tool is not None:
                     )
 
     elif st.session_state.tool == "split":
-        st.markdown('<div class="section-box">', unsafe_allow_html=True)
-        st.markdown('<div class="upload-zone-title">Selecione o PDF</div>', unsafe_allow_html=True)
-        arquivo = st.file_uploader(
+        arquivo = render_upload_block(
             "Selecione o PDF",
-            type=["pdf"],
-            accept_multiple_files=False,
-            key="split_file",
-            label_visibility="collapsed",
+            lambda: st.file_uploader(
+                "Selecione o PDF",
+                type=["pdf"],
+                accept_multiple_files=False,
+                key="split_file",
+                label_visibility="collapsed",
+            )
         )
         file_summary_box(arquivo, "PDF")
-        st.markdown("</div>", unsafe_allow_html=True)
 
         if arquivo:
             file_bytes = arquivo.getvalue()
@@ -1171,11 +1281,10 @@ if st.session_state.tool is not None:
             )
             st.session_state.split_editor_df = edited_df
 
-            render_clickable_preview(
+            render_preview(
                 st.session_state.split_editor_df,
                 file_map,
                 "Preview das páginas",
-                "split_selected_page",
             )
 
             st.markdown('<div class="section-box">', unsafe_allow_html=True)
@@ -1229,15 +1338,17 @@ if st.session_state.tool is not None:
             st.markdown("</div>", unsafe_allow_html=True)
 
     elif st.session_state.tool == "reorganize":
-        st.markdown('<div class="section-box">', unsafe_allow_html=True)
-        st.markdown('<div class="upload-zone-title">Selecione o PDF principal e os extras</div>', unsafe_allow_html=True)
-        base_pdf = st.file_uploader(
+        base_pdf = render_upload_block(
             "Selecione o PDF principal",
-            type=["pdf"],
-            accept_multiple_files=False,
-            key="reorg_base",
-            label_visibility="collapsed",
+            lambda: st.file_uploader(
+                "Selecione o PDF principal",
+                type=["pdf"],
+                accept_multiple_files=False,
+                key="reorg_base",
+                label_visibility="collapsed",
+            )
         )
+
         extra_pdfs = st.file_uploader(
             "Selecione PDFs extras para adicionar páginas",
             type=["pdf"],
@@ -1248,7 +1359,6 @@ if st.session_state.tool is not None:
         if base_pdf:
             resumo_lista = [base_pdf] + (extra_pdfs if extra_pdfs else [])
             file_summary_box(resumo_lista, "PDF")
-        st.markdown("</div>", unsafe_allow_html=True)
 
         extras = extra_pdfs if extra_pdfs else []
 
@@ -1285,11 +1395,10 @@ if st.session_state.tool is not None:
             )
             st.session_state.reorg_editor_df = edited_df
 
-            render_clickable_preview(
+            render_preview(
                 st.session_state.reorg_editor_df,
                 file_bytes_map,
                 "Preview do PDF reorganizado",
-                "reorg_selected_page",
             )
 
             action_cols = st.columns([1, 1, 1])
@@ -1312,17 +1421,17 @@ if st.session_state.tool is not None:
             st.info("Envie um PDF principal para começar a reorganização.")
 
     elif st.session_state.tool == "compress":
-        st.markdown('<div class="section-box">', unsafe_allow_html=True)
-        st.markdown('<div class="upload-zone-title">Selecione os PDFs</div>', unsafe_allow_html=True)
-        arquivos = st.file_uploader(
+        arquivos = render_upload_block(
             "Selecione os PDFs",
-            type=["pdf"],
-            accept_multiple_files=True,
-            key="compress_files",
-            label_visibility="collapsed",
+            lambda: st.file_uploader(
+                "Selecione os PDFs",
+                type=["pdf"],
+                accept_multiple_files=True,
+                key="compress_files",
+                label_visibility="collapsed",
+            )
         )
         file_summary_box(arquivos, "PDF")
-        st.markdown("</div>", unsafe_allow_html=True)
 
         action_cols = st.columns([1, 1, 1])
         with action_cols[1]:
@@ -1358,17 +1467,17 @@ if st.session_state.tool is not None:
                     )
 
     elif st.session_state.tool == "imgpdf":
-        st.markdown('<div class="section-box">', unsafe_allow_html=True)
-        st.markdown('<div class="upload-zone-title">Envie imagens JPG ou PNG</div>', unsafe_allow_html=True)
-        imagens = st.file_uploader(
-            "Envie imagens",
-            type=["png", "jpg", "jpeg"],
-            accept_multiple_files=True,
-            key="imgpdf_files",
-            label_visibility="collapsed",
+        imagens = render_upload_block(
+            "Envie imagens JPG ou PNG",
+            lambda: st.file_uploader(
+                "Envie imagens",
+                type=["png", "jpg", "jpeg"],
+                accept_multiple_files=True,
+                key="imgpdf_files",
+                label_visibility="collapsed",
+            )
         )
         file_summary_box(imagens, "JPG / PNG")
-        st.markdown("</div>", unsafe_allow_html=True)
 
         if imagens:
             render_image_preview(imagens)
@@ -1391,18 +1500,18 @@ if st.session_state.tool is not None:
                 )
 
     elif st.session_state.tool == "pdfjpg":
-        st.markdown('<div class="section-box">', unsafe_allow_html=True)
-        st.markdown('<div class="upload-zone-title">Selecione o PDF</div>', unsafe_allow_html=True)
-        arquivo = st.file_uploader(
+        arquivo = render_upload_block(
             "Selecione o PDF",
-            type=["pdf"],
-            accept_multiple_files=False,
-            key="pdfjpg_file",
-            label_visibility="collapsed",
+            lambda: st.file_uploader(
+                "Selecione o PDF",
+                type=["pdf"],
+                accept_multiple_files=False,
+                key="pdfjpg_file",
+                label_visibility="collapsed",
+            )
         )
         file_summary_box(arquivo, "PDF")
         quality = st.slider("Qualidade do JPG", min_value=60, max_value=100, value=90, step=5)
-        st.markdown("</div>", unsafe_allow_html=True)
 
         action_cols = st.columns([1, 1, 1])
         with action_cols[1]:
@@ -1421,17 +1530,17 @@ if st.session_state.tool is not None:
                 )
 
     elif st.session_state.tool == "pdfword":
-        st.markdown('<div class="section-box">', unsafe_allow_html=True)
-        st.markdown('<div class="upload-zone-title">Selecione o PDF</div>', unsafe_allow_html=True)
-        arquivo = st.file_uploader(
+        arquivo = render_upload_block(
             "Selecione o PDF",
-            type=["pdf"],
-            accept_multiple_files=False,
-            key="pdfword_file",
-            label_visibility="collapsed",
+            lambda: st.file_uploader(
+                "Selecione o PDF",
+                type=["pdf"],
+                accept_multiple_files=False,
+                key="pdfword_file",
+                label_visibility="collapsed",
+            )
         )
         file_summary_box(arquivo, "PDF")
-        st.markdown("</div>", unsafe_allow_html=True)
 
         action_cols = st.columns([1, 1, 1])
         with action_cols[1]:
@@ -1450,17 +1559,17 @@ if st.session_state.tool is not None:
                 )
 
     elif st.session_state.tool == "wordpdf":
-        st.markdown('<div class="section-box">', unsafe_allow_html=True)
-        st.markdown('<div class="upload-zone-title">Selecione o arquivo Word (.docx)</div>', unsafe_allow_html=True)
-        arquivo = st.file_uploader(
+        arquivo = render_upload_block(
             "Selecione o arquivo Word (.docx)",
-            type=["docx"],
-            accept_multiple_files=False,
-            key="wordpdf_file",
-            label_visibility="collapsed",
+            lambda: st.file_uploader(
+                "Selecione o arquivo Word (.docx)",
+                type=["docx"],
+                accept_multiple_files=False,
+                key="wordpdf_file",
+                label_visibility="collapsed",
+            )
         )
         file_summary_box(arquivo, "DOCX")
-        st.markdown("</div>", unsafe_allow_html=True)
 
         action_cols = st.columns([1, 1, 1])
         with action_cols[1]:
