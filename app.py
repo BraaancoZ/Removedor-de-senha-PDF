@@ -557,7 +557,6 @@ def render_preview(plan_df: pd.DataFrame, file_bytes_map: Dict[str, bytes], titl
                         unsafe_allow_html=True,
                     )
 
-
 # =====================================================
 # CSS
 # =====================================================
@@ -565,15 +564,17 @@ def render_preview(plan_df: pd.DataFrame, file_bytes_map: Dict[str, bytes], titl
 st.markdown("""
 <style>
 :root {
-    --bg: #f3f4f6;
+    --bg: #eef2f7;
     --card: #ffffff;
+    --card-soft: #f8fafc;
     --text: #1f2937;
-    --muted: #6b7280;
-    --line: #e5e7eb;
+    --muted: #5f6b7a;
+    --line: #d9e1ea;
+    --line-strong: #c5cfdb;
     --red: #e5322d;
     --red-dark: #cc2420;
-    --shadow: 0 10px 28px rgba(0,0,0,.05);
-    --shadow-soft: 0 8px 18px rgba(0,0,0,.04);
+    --shadow: 0 10px 28px rgba(15, 23, 42, .06);
+    --shadow-soft: 0 8px 18px rgba(15, 23, 42, .05);
 }
 
 html, body, [data-testid="stAppViewContainer"] {
@@ -641,7 +642,7 @@ header, [data-testid="stHeader"] {
 }
 
 .hero-box {
-    background: linear-gradient(180deg, #ffffff 0%, #fbfbfb 100%);
+    background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
     border: 1px solid var(--line);
     border-radius: 24px;
     padding: 30px 20px;
@@ -707,13 +708,13 @@ header, [data-testid="stHeader"] {
 }
 
 .tool-banner {
-    background: #fff;
+    background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
     border: 1px solid var(--line);
     border-radius: 22px;
-    padding: 24px 18px;
+    padding: 28px 18px;
     box-shadow: var(--shadow);
     text-align: center;
-    margin-bottom: 16px;
+    margin-bottom: 18px;
 }
 
 .tool-banner h2 {
@@ -729,7 +730,7 @@ header, [data-testid="stHeader"] {
 }
 
 .tool-panel {
-    background: #fff;
+    background: #ffffff;
     border: 1px solid var(--line);
     border-radius: 22px;
     padding: 22px 18px 26px 18px;
@@ -737,7 +738,7 @@ header, [data-testid="stHeader"] {
 }
 
 .section-box {
-    background: #fcfcfc;
+    background: var(--card-soft);
     border: 1px solid var(--line);
     border-radius: 18px;
     padding: 16px;
@@ -745,15 +746,15 @@ header, [data-testid="stHeader"] {
 }
 
 .upload-section {
-    padding-top: 22px;
-    padding-bottom: 22px;
+    padding-top: 20px;
+    padding-bottom: 20px;
 }
 
 .upload-zone-title {
     text-align: center;
     font-weight: 900;
     font-size: 1.12rem;
-    margin-bottom: 10px;
+    margin-bottom: 12px;
     color: var(--text) !important;
 }
 
@@ -765,8 +766,10 @@ header, [data-testid="stHeader"] {
     background: #fff;
     border: 1px solid var(--line);
     border-radius: 14px;
-    padding: 10px 12px;
-    margin-top: 10px;
+    padding: 12px 14px;
+    margin-top: 12px;
+    color: var(--text) !important;
+    box-shadow: var(--shadow-soft);
 }
 
 .preview-page-card {
@@ -807,6 +810,7 @@ header, [data-testid="stHeader"] {
     border-radius: 12px;
     padding: 14px;
     text-align: center;
+    color: var(--text) !important;
 }
 
 .stButton > button,
@@ -837,12 +841,18 @@ header, [data-testid="stHeader"] {
     background: #000 !important;
 }
 
+/* File uploader */
+[data-testid="stFileUploader"] {
+    background: transparent !important;
+}
+
 [data-testid="stFileUploaderDropzone"] {
-    background: #fff !important;
-    border: 2px dashed #d1d5db !important;
+    background: #ffffff !important;
+    border: 2px dashed var(--line-strong) !important;
     border-radius: 20px !important;
-    padding-top: 36px !important;
-    padding-bottom: 36px !important;
+    padding-top: 34px !important;
+    padding-bottom: 34px !important;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.4);
 }
 
 [data-testid="stFileUploaderDropzone"]:hover {
@@ -850,9 +860,14 @@ header, [data-testid="stHeader"] {
     background: #fffafa !important;
 }
 
+[data-testid="stFileUploaderDropzoneInstructions"] {
+    color: var(--text) !important;
+}
+
 [data-testid="stFileUploaderDropzoneInstructions"] div {
     visibility: hidden;
     position: relative;
+    min-height: 28px;
 }
 
 [data-testid="stFileUploaderDropzoneInstructions"] div::before {
@@ -864,6 +879,11 @@ header, [data-testid="stHeader"] {
     color: var(--text) !important;
     font-weight: 800;
     font-size: 1rem;
+}
+
+[data-testid="stFileUploaderDropzoneInstructions"] small {
+    color: var(--muted) !important;
+    opacity: 1 !important;
 }
 
 [data-testid="stFileUploader"] section button {
@@ -881,6 +901,67 @@ header, [data-testid="stHeader"] {
     font-weight: 800;
 }
 
+/* nomes dos arquivos enviados */
+[data-testid="stFileUploaderFile"] {
+    background: #ffffff !important;
+    border: 1px solid var(--line) !important;
+    border-radius: 12px !important;
+    padding: 8px 10px !important;
+    margin-top: 8px !important;
+}
+
+[data-testid="stFileUploaderFile"] * {
+    color: var(--text) !important;
+    opacity: 1 !important;
+}
+
+[data-testid="stFileUploaderFileName"] {
+    color: var(--text) !important;
+    font-weight: 700 !important;
+}
+
+[data-testid="stFileUploaderFileData"] {
+    color: var(--muted) !important;
+}
+
+/* input de texto / senha */
+[data-testid="stTextInput"] label,
+[data-testid="stNumberInput"] label,
+[data-testid="stSelectbox"] label,
+[data-testid="stSlider"] label {
+    color: var(--text) !important;
+    font-weight: 800 !important;
+}
+
+[data-testid="stTextInput"] input,
+[data-testid="stNumberInput"] input,
+[data-baseweb="select"] > div,
+[data-baseweb="base-input"] > div {
+    background: #ffffff !important;
+    color: var(--text) !important;
+    border: 1px solid var(--line) !important;
+    border-radius: 12px !important;
+}
+
+[data-testid="stTextInput"] input::placeholder,
+[data-testid="stNumberInput"] input::placeholder {
+    color: #8a94a6 !important;
+    opacity: 1 !important;
+}
+
+/* select / popover */
+div[data-baseweb="popover"] button,
+div[data-baseweb="select"] * {
+    color: var(--text) !important;
+}
+
+div[data-baseweb="popover"] button {
+    background: #ffffff !important;
+    border: 1px solid var(--line) !important;
+    border-radius: 12px !important;
+}
+
+/* botão do menu superior */
 .nav-btn .stButton > button {
     min-height: 48px !important;
     background: #fff !important;
@@ -890,6 +971,22 @@ header, [data-testid="stHeader"] {
 }
 
 .nav-btn .stButton > button:hover {
+    background: #fafafa !important;
+    border-color: #d1d5db !important;
+}
+
+/* popover "Converter PDF" */
+[data-testid="stPopover"] button {
+    min-height: 48px !important;
+    background: #ffffff !important;
+    color: var(--text) !important;
+    border: 1px solid var(--line) !important;
+    border-radius: 12px !important;
+    box-shadow: none !important;
+    font-weight: 800 !important;
+}
+
+[data-testid="stPopover"] button:hover {
     background: #fafafa !important;
     border-color: #d1d5db !important;
 }
@@ -931,6 +1028,22 @@ header, [data-testid="stHeader"] {
     color: var(--muted) !important;
     margin-top: 24px;
     font-size: 0.95rem;
+}
+
+.stInfo, .stSuccess, .stWarning, .stError {
+    border-radius: 14px !important;
+}
+
+/* data editor */
+[data-testid="stDataEditor"] {
+    border: 1px solid var(--line) !important;
+    border-radius: 14px !important;
+    overflow: hidden !important;
+}
+
+/* remove visual feio de containers vazios */
+.element-container:has(> div:empty) {
+    display: none !important;
 }
 
 @media (max-width: 900px) {
@@ -1092,9 +1205,6 @@ if st.session_state.tool is not None:
 
     st.markdown('<div class="tool-panel">', unsafe_allow_html=True)
 
-    # =================================================
-    # UNLOCK
-    # =================================================
     if st.session_state.tool == "unlock":
         st.markdown('<div class="section-box upload-section">', unsafe_allow_html=True)
         st.markdown('<div class="upload-zone-title">Envie os PDFs protegidos</div>', unsafe_allow_html=True)
@@ -1167,9 +1277,6 @@ if st.session_state.tool is not None:
                 except Exception as e:
                     st.error(str(e))
 
-    # =================================================
-    # MERGE
-    # =================================================
     elif st.session_state.tool == "merge":
         st.markdown('<div class="section-box upload-section">', unsafe_allow_html=True)
         st.markdown('<div class="upload-zone-title">Selecione os PDFs</div>', unsafe_allow_html=True)
@@ -1246,9 +1353,6 @@ if st.session_state.tool is not None:
                         key="download_merge",
                     )
 
-    # =================================================
-    # SPLIT
-    # =================================================
     elif st.session_state.tool == "split":
         st.markdown('<div class="section-box upload-section">', unsafe_allow_html=True)
         st.markdown('<div class="upload-zone-title">Selecione o PDF</div>', unsafe_allow_html=True)
@@ -1369,9 +1473,6 @@ if st.session_state.tool is not None:
                 st.info("Este PDF possui apenas uma página.")
             st.markdown("</div>", unsafe_allow_html=True)
 
-    # =================================================
-    # REORGANIZE
-    # =================================================
     elif st.session_state.tool == "reorganize":
         st.markdown('<div class="section-box upload-section">', unsafe_allow_html=True)
         st.markdown('<div class="upload-zone-title">Selecione um ou mais PDFs</div>', unsafe_allow_html=True)
@@ -1446,9 +1547,6 @@ if st.session_state.tool is not None:
         else:
             st.info("Envie um ou mais PDFs para começar a reorganização.")
 
-    # =================================================
-    # COMPRESS
-    # =================================================
     elif st.session_state.tool == "compress":
         st.markdown('<div class="section-box upload-section">', unsafe_allow_html=True)
         st.markdown('<div class="upload-zone-title">Selecione os PDFs</div>', unsafe_allow_html=True)
@@ -1504,9 +1602,6 @@ if st.session_state.tool is not None:
                         key="download_compress",
                     )
 
-    # =================================================
-    # IMG -> PDF
-    # =================================================
     elif st.session_state.tool == "imgpdf":
         st.markdown('<div class="section-box upload-section">', unsafe_allow_html=True)
         st.markdown('<div class="upload-zone-title">Envie imagens JPG ou PNG</div>', unsafe_allow_html=True)
@@ -1540,9 +1635,6 @@ if st.session_state.tool is not None:
                     key="download_imgpdf",
                 )
 
-    # =================================================
-    # PDF -> JPG
-    # =================================================
     elif st.session_state.tool == "pdfjpg":
         st.markdown('<div class="section-box upload-section">', unsafe_allow_html=True)
         st.markdown('<div class="upload-zone-title">Selecione um ou mais PDFs</div>', unsafe_allow_html=True)
@@ -1585,9 +1677,6 @@ if st.session_state.tool is not None:
                     key="download_pdfjpg",
                 )
 
-    # =================================================
-    # PDF -> WORD
-    # =================================================
     elif st.session_state.tool == "pdfword":
         st.markdown('<div class="section-box upload-section">', unsafe_allow_html=True)
         st.markdown('<div class="upload-zone-title">Selecione um ou mais PDFs</div>', unsafe_allow_html=True)
@@ -1640,9 +1729,6 @@ if st.session_state.tool is not None:
                         key="download_pdfword_zip",
                     )
 
-    # =================================================
-    # WORD -> PDF
-    # =================================================
     elif st.session_state.tool == "wordpdf":
         st.markdown('<div class="section-box upload-section">', unsafe_allow_html=True)
         st.markdown('<div class="upload-zone-title">Selecione um ou mais arquivos Word (.docx)</div>', unsafe_allow_html=True)
