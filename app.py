@@ -1097,25 +1097,66 @@ if st.session_state.tool is not None:
             else:
                 try:
                     with st.spinner("Desbloqueando arquivos..."):
-                        if len(arquivos) == 1:
-                            f = arquivos[0]
-                            file_bytes = f["bytes"] if isinstance(f, dict) else f.getvalue()
-                            file_name = f["name"] if isinstance(f, dict) else f.name
-                            unlocked = unlock_pdf(file_bytes, senha)
-                            st.download_button(
-                                "Baixar PDF desbloqueado",
-                                unlocked,
-                                file_name,
-                                key="download_unlock_single",
-                            )
-                        else:
-                            zip_buffer = io.BytesIO()
-                            with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
-                                for arquivo in arquivos:
-                                    file_bytes = arquivo["bytes"] if isinstance(arquivo, dict) else arquivo.getvalue()
-                                    file_name = arquivo["name"] if isinstance(arquivo, dict) else arquivo.name
-                                    unlocked = unlock_pdf(file_bytes, senha)
-                                    zip_file.writestr(file_name, unlocked)
+                       if desbloquear:
+
+    if not arquivos:
+        st.warning("Envie pelo menos um PDF.")
+
+    elif not senha:
+        st.warning("Digite a senha.")
+
+    else:
+
+        try:
+
+            resultados = []
+
+            with st.spinner("Desbloqueando arquivos..."):
+
+                for arquivo in arquivos:
+
+                    file_bytes = arquivo["bytes"] if isinstance(arquivo, dict) else arquivo.getvalue()
+                    file_name = arquivo["name"] if isinstance(arquivo, dict) else arquivo.name
+
+                    unlocked = unlock_pdf(file_bytes, senha)
+
+                    resultados.append((file_name, unlocked))
+
+            st.success("Arquivos desbloqueados!")
+
+            # DOWNLOAD INDIVIDUAL
+            st.markdown("### Baixar individualmente")
+
+            for nome, conteudo in resultados:
+
+                st.download_button(
+                    label=f"Baixar {nome}",
+                    data=conteudo,
+                    file_name=nome,
+                    key=f"download_{nome}"
+                )
+
+            # DOWNLOAD ZIP
+            if len(resultados) > 1:
+
+                zip_buffer = io.BytesIO()
+
+                with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
+
+                    for nome, conteudo in resultados:
+                        zip_file.writestr(nome, conteudo)
+
+                st.markdown("### Baixar todos de uma vez")
+
+                st.download_button(
+                    label="Baixar tudo em ZIP",
+                    data=zip_buffer.getvalue(),
+                    file_name="pdfs_desbloqueados.zip",
+                    key="download_zip_unlock"
+                )
+
+        except Exception as e:
+            st.error(str(e))
 
                             st.download_button(
                                 "Baixar todos em ZIP",
@@ -1648,3 +1689,4 @@ st.markdown(
     '<div class="footer-note">PDF Fácil • Ferramentas gratuitas para PDF no navegador</div>',
     unsafe_allow_html=True,
 )
+
