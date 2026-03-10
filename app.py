@@ -177,11 +177,12 @@ def save_home_uploads(uploaded_files):
     data = []
     if uploaded_files:
         for f in uploaded_files:
+            file_bytes = f.getvalue()
             data.append(
                 {
                     "name": f.name,
-                    "bytes": f.getvalue(),
-                    "size": getattr(f, "size", len(f.getvalue())),
+                    "bytes": file_bytes,
+                    "size": getattr(f, "size", len(file_bytes)),
                     "type": Path(f.name).suffix.lower().replace(".", ""),
                 }
             )
@@ -191,6 +192,30 @@ def save_home_uploads(uploaded_files):
 def get_home_files_by_ext(extensions: List[str]) -> List[dict]:
     files = st.session_state.get("home_uploaded_files_data", [])
     return [f for f in files if f["type"] in extensions]
+
+
+def normalize_files(files):
+    normalized = []
+    if not files:
+        return normalized
+
+    if not isinstance(files, list):
+        files = [files]
+
+    for f in files:
+        if isinstance(f, dict):
+            normalized.append(f)
+        else:
+            file_bytes = f.getvalue()
+            normalized.append(
+                {
+                    "name": f.name,
+                    "bytes": file_bytes,
+                    "size": getattr(f, "size", len(file_bytes)),
+                    "type": Path(f.name).suffix.lower().replace(".", ""),
+                }
+            )
+    return normalized
 
 
 def unlock_pdf(pdf_bytes: bytes, password: str) -> bytes:
@@ -531,6 +556,7 @@ def render_preview(plan_df: pd.DataFrame, file_bytes_map: Dict[str, bytes], titl
                         """,
                         unsafe_allow_html=True,
                     )
+
 
 # =====================================================
 # CSS
@@ -1005,7 +1031,7 @@ if st.session_state.tool is None:
     st.markdown(
         """
         <div class="big-home-upload">
-            <div class="big-home-upload-title">Envie seus PDFs e comece agora</div>
+            <div class="big-home-upload-title">Envie seus arquivos e comece agora</div>
             <div class="big-home-upload-subtitle">Os arquivos enviados aqui serão reaproveitados automaticamente nas ferramentas compatíveis</div>
         </div>
         """,
@@ -1013,14 +1039,14 @@ if st.session_state.tool is None:
     )
 
     home_files = st.file_uploader(
-        "Envie PDFs",
-        type=["pdf"],
+        "Envie arquivos",
+        type=["pdf", "docx"],
         accept_multiple_files=True,
         key="home_big_upload",
         label_visibility="collapsed",
     )
     save_home_uploads(home_files)
-    file_summary_box(get_home_files_by_ext(["pdf"]), "PDF")
+    file_summary_box(st.session_state.home_uploaded_files_data, "PDF / DOCX")
 
     st.markdown("<div style='height:10px;'></div>", unsafe_allow_html=True)
 
@@ -1066,6 +1092,9 @@ if st.session_state.tool is not None:
 
     st.markdown('<div class="tool-panel">', unsafe_allow_html=True)
 
+    # =================================================
+    # UNLOCK
+    # =================================================
     if st.session_state.tool == "unlock":
         st.markdown('<div class="section-box upload-section">', unsafe_allow_html=True)
         st.markdown('<div class="upload-zone-title">Envie os PDFs protegidos</div>', unsafe_allow_html=True)
@@ -1096,77 +1125,51 @@ if st.session_state.tool is not None:
                 st.warning("Digite a senha.")
             else:
                 try:
+                    resultados = []
+
                     with st.spinner("Desbloqueando arquivos..."):
-                       if desbloquear:
+                        for arquivo in arquivos:
+                            if isinstance(arquivo, dict):
+                                file_bytes = arquivo["bytes"]
+                                file_name = arquivo["name"]
+                            else:
+                                file_bytes = arquivo.getvalue()
+                                file_name = arquivo.name
 
-    if not arquivos:
-        st.warning("Envie pelo menos um PDF.")
+                            unlocked = unlock_pdf(file_bytes, senha)
+                            resultados.append((file_name, unlocked))
 
-    elif not senha:
-        st.warning("Digite a senha.")
+                    st.success("Arquivos desbloqueados!")
 
-    else:
+                    st.markdown("### Baixar individualmente")
+                    for i, (nome, conteudo) in enumerate(resultados):
+                        st.download_button(
+                            label=f"Baixar {nome}",
+                            data=conteudo,
+                            file_name=nome,
+                            key=f"download_unlock_{i}_{nome}",
+                        )
 
-        try:
+                    if len(resultados) > 1:
+                        zip_buffer = io.BytesIO()
+                        with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
+                            for nome, conteudo in resultados:
+                                zip_file.writestr(nome, conteudo)
 
-            resultados = []
+                        st.markdown("### Baixar todos de uma vez")
+                        st.download_button(
+                            label="Baixar tudo em ZIP",
+                            data=zip_buffer.getvalue(),
+                            file_name="pdfs_desbloqueados.zip",
+                            key="download_zip_unlock",
+                        )
 
-            with st.spinner("Desbloqueando arquivos..."):
-
-                for arquivo in arquivos:
-
-                    file_bytes = arquivo["bytes"] if isinstance(arquivo, dict) else arquivo.getvalue()
-                    file_name = arquivo["name"] if isinstance(arquivo, dict) else arquivo.name
-
-                    unlocked = unlock_pdf(file_bytes, senha)
-
-                    resultados.append((file_name, unlocked))
-
-            st.success("Arquivos desbloqueados!")
-
-            # DOWNLOAD INDIVIDUAL
-            st.markdown("### Baixar individualmente")
-
-            for nome, conteudo in resultados:
-
-                st.download_button(
-                    label=f"Baixar {nome}",
-                    data=conteudo,
-                    file_name=nome,
-                    key=f"download_{nome}"
-                )
-
-            # DOWNLOAD ZIP
-            if len(resultados) > 1:
-
-                zip_buffer = io.BytesIO()
-
-                with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
-
-                    for nome, conteudo in resultados:
-                        zip_file.writestr(nome, conteudo)
-
-                st.markdown("### Baixar todos de uma vez")
-
-                st.download_button(
-                    label="Baixar tudo em ZIP",
-                    data=zip_buffer.getvalue(),
-                    file_name="pdfs_desbloqueados.zip",
-                    key="download_zip_unlock"
-                )
-
-        except Exception as e:
-            st.error(str(e))
-
-                            st.download_button(
-                                "Baixar todos em ZIP",
-                                zip_buffer.getvalue(),
-                                "pdfs_desbloqueados.zip",
-                                key="download_unlock_all",
-                            )
                 except Exception as e:
                     st.error(str(e))
 
+    # =================================================
+    # MERGE
+    # =================================================
     elif st.session_state.tool == "merge":
         st.markdown('<div class="section-box upload-section">', unsafe_allow_html=True)
         st.markdown('<div class="upload-zone-title">Selecione os PDFs</div>', unsafe_allow_html=True)
@@ -1186,13 +1189,7 @@ if st.session_state.tool is not None:
 
         file_bytes_map = {}
         if arquivos:
-            normalized_files = []
-            for a in arquivos:
-                if isinstance(a, dict):
-                    normalized_files.append(a)
-                else:
-                    normalized_files.append({"name": a.name, "bytes": a.getvalue(), "size": getattr(a, "size", len(a.getvalue()))})
-
+            normalized_files = normalize_files(arquivos)
             file_bytes_map = {a["name"]: a["bytes"] for a in normalized_files}
             current_source = [a["name"] for a in normalized_files]
 
@@ -1249,6 +1246,9 @@ if st.session_state.tool is not None:
                         key="download_merge",
                     )
 
+    # =================================================
+    # SPLIT
+    # =================================================
     elif st.session_state.tool == "split":
         st.markdown('<div class="section-box upload-section">', unsafe_allow_html=True)
         st.markdown('<div class="upload-zone-title">Selecione o PDF</div>', unsafe_allow_html=True)
@@ -1369,6 +1369,9 @@ if st.session_state.tool is not None:
                 st.info("Este PDF possui apenas uma página.")
             st.markdown("</div>", unsafe_allow_html=True)
 
+    # =================================================
+    # REORGANIZE
+    # =================================================
     elif st.session_state.tool == "reorganize":
         st.markdown('<div class="section-box upload-section">', unsafe_allow_html=True)
         st.markdown('<div class="upload-zone-title">Selecione um ou mais PDFs</div>', unsafe_allow_html=True)
@@ -1387,13 +1390,7 @@ if st.session_state.tool is not None:
         file_summary_box(arquivos, "PDF")
 
         if arquivos:
-            normalized_files = []
-            for a in arquivos:
-                if isinstance(a, dict):
-                    normalized_files.append(a)
-                else:
-                    normalized_files.append({"name": a.name, "bytes": a.getvalue(), "size": getattr(a, "size", len(a.getvalue()))})
-
+            normalized_files = normalize_files(arquivos)
             all_names = [a["name"] for a in normalized_files]
             file_bytes_map = {a["name"]: a["bytes"] for a in normalized_files}
 
@@ -1449,6 +1446,9 @@ if st.session_state.tool is not None:
         else:
             st.info("Envie um ou mais PDFs para começar a reorganização.")
 
+    # =================================================
+    # COMPRESS
+    # =================================================
     elif st.session_state.tool == "compress":
         st.markdown('<div class="section-box upload-section">', unsafe_allow_html=True)
         st.markdown('<div class="upload-zone-title">Selecione os PDFs</div>', unsafe_allow_html=True)
@@ -1504,6 +1504,9 @@ if st.session_state.tool is not None:
                         key="download_compress",
                     )
 
+    # =================================================
+    # IMG -> PDF
+    # =================================================
     elif st.session_state.tool == "imgpdf":
         st.markdown('<div class="section-box upload-section">', unsafe_allow_html=True)
         st.markdown('<div class="upload-zone-title">Envie imagens JPG ou PNG</div>', unsafe_allow_html=True)
@@ -1537,6 +1540,9 @@ if st.session_state.tool is not None:
                     key="download_imgpdf",
                 )
 
+    # =================================================
+    # PDF -> JPG
+    # =================================================
     elif st.session_state.tool == "pdfjpg":
         st.markdown('<div class="section-box upload-section">', unsafe_allow_html=True)
         st.markdown('<div class="upload-zone-title">Selecione um ou mais PDFs</div>', unsafe_allow_html=True)
@@ -1579,6 +1585,9 @@ if st.session_state.tool is not None:
                     key="download_pdfjpg",
                 )
 
+    # =================================================
+    # PDF -> WORD
+    # =================================================
     elif st.session_state.tool == "pdfword":
         st.markdown('<div class="section-box upload-section">', unsafe_allow_html=True)
         st.markdown('<div class="upload-zone-title">Selecione um ou mais PDFs</div>', unsafe_allow_html=True)
@@ -1631,6 +1640,9 @@ if st.session_state.tool is not None:
                         key="download_pdfword_zip",
                     )
 
+    # =================================================
+    # WORD -> PDF
+    # =================================================
     elif st.session_state.tool == "wordpdf":
         st.markdown('<div class="section-box upload-section">', unsafe_allow_html=True)
         st.markdown('<div class="upload-zone-title">Selecione um ou mais arquivos Word (.docx)</div>', unsafe_allow_html=True)
@@ -1689,4 +1701,3 @@ st.markdown(
     '<div class="footer-note">PDF Fácil • Ferramentas gratuitas para PDF no navegador</div>',
     unsafe_allow_html=True,
 )
-
